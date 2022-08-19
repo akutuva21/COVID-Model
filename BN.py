@@ -15,12 +15,12 @@ def BN(components, n_iter):
         r = random.sample(list(x), len(x))
         for i in r:
             if (i == "Virus"):
-                x[i] = x[i]
+                x[i] = x["Virus"]
             if (i == "Viral_Repl"):
-                x[i] = (x["Virus"] or x["Viral_Repl"]) and not x["ISG"]
+                x[i] = (x["Virus"]) and not x["ISG"]
             if (i == "ACE2"):
                 # PKC mediates ACE2 shedding from tubular cells
-                x[i] = not (x["Virus"] or x["RIG1"]) #x["PKC"] and not x["ADAM_17"]
+                x[i] = not x["RIG1"] #not (x["Virus"] or x["RIG1"]) #x["PKC"] and not x["ADAM_17"]
                 # x[i] = not x["Virus"]
                 # not sure about if there is a relation since Virus just relies on ACE2 to enter cells, the presence of ACE2 promotes disease prog
             if (i == "PKC"):
@@ -44,32 +44,32 @@ def BN(components, n_iter):
                 # Spike glycoprotein, the major infective surface protein of SARS-CoV-2 has been found as a ligand for human TLR4
                 # https://www.futuremedicine.com/doi/full/10.2217/fvl-2021-0249
             if (i == "RIG1"):
-                x[i] = x["Virus"]
+                x[i] = x["Viral_Repl"]
                 # antiviral activity of RIG-1 may comprise inhibition of viral entry into the host cell by preventing the expression of its receptor, ACE2
                 # https://www.news-medical.net/news/20210215/RIG-1-like-receptors-may-play-dominant-role-in-suppressing-SARS-CoV-2-infection.aspx
             if (i == "NFKβ"):
                 x[i] = not x["IKKB α/β"] # x["ANG_2_T1R"] or x["PKC"] or x["RIG1"] or
                 # should be good, may need to find what exactly inhibits NFKβ
                 # common drug therapy is inhibiting NFKβ (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7648206/")
-            
+
             ##################### NEW #####################
             if (i == "IKKB α/β"):
-                x[i] = not (x["TLR4"] or x["TNFR"] or x["IL1R"])
+                x[i] = not (x["TLR4"] or x["TNFR"] or x["IL1R"] or x["RIG1"])
             ##################### NEW #####################
 
             if (i == "TNF"):
                 x[i] = x["NFKβ"]
                 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7114322/
             if (i == "IRF3"):
-                x[i] = x["RIG1"] and not x["Virus"]
+                x[i] = x["RIG1"]# and not x["Viral_Repl"]
                 # https://journals.asm.org/doi/10.1128/CMR.00299-20
                 # SARS-CoV-2 membrane protein binds to importin karyopherin subunit alpha-6 (KPNA6") to inhibit interferon regulatory factor 3(IRF3") nuclear translocation
                 # https://www.frontiersin.org/articles/10.3389/fcimb.2021.766922/full
             if (i == "STAT1"):
-                x[i] = x["IFNR"] and not x["Virus"]
+                x[i] = x["IFNR"]# and not x["Viral_Repl"]
                 # After the infection, STAT1 activity is inhibited by the SARS-CoV-2 proteins, NSP1, and ORF6
                 # https://www.nature.com/articles/s41418-020-00633-7
-            
+
             ########################## NEW ###############################
             if (i == "STAT3"):
                 #x[i] = x["IL6"] # IL6 is the main contributor to STAT3 - add il6 and il6r to the list of components
@@ -84,7 +84,7 @@ def BN(components, n_iter):
                 x[i] = x["NFKβ"] and not x["FOXO3A"]
                 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4219646/
             if (i == "INF α/β"):
-                x[i] = x["IRF3"] and not x["Virus"]
+                x[i] = x["IRF3"]# and not x["Viral_Repl"]
                 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7995242/
             if (i == "NRLP3"):
                 x[i] = x["NFKβ"]
@@ -92,7 +92,7 @@ def BN(components, n_iter):
             if (i == "CASP1"):
                 x[i] = x["NRLP3"]
                 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6651423/
-            
+
             ########################## CHANGED ###############################
             if (i == "FOXO3A"):
                 #x[i] = x["Virus"]
@@ -116,7 +116,7 @@ def BN(components, n_iter):
             if (i == "CASP9"):
                 x[i] = x["Bax_Bak"]
                 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4219646/
-            
+
             ########################## CHANGED ###############################
             if (i == "ROS"):
                 x[i] = x["ROS"] #not x["FOXO3A"]
@@ -151,7 +151,7 @@ def BN(components, n_iter):
                 # read more later
                 # https://www.sciencedirect.com/science/article/pii/S1097276514008661
             if (i == "CASP8"):
-                x[i] = (x["FADD"] or x["ROS"]) or not x["C_FLIP"]
+                x[i] = (x["FADD"] or x["ROS"])# or not x["C_FLIP"]
                 # too many, will assume all is true, only certain drugs inhibit casp 8
             if (i == "Apoptosis"):
                 x[i] = x["CASP8"]
@@ -175,7 +175,7 @@ def main():
     for k in range(orders):
         mat += BN(components, n_iter)
     mat /= orders
-    
+
     fig = plt.figure()
     fig.set_size_inches(10, 7, forward=True)
     yticklabels = [str(x) for x in range(1,n_iter + 1)]
@@ -188,11 +188,11 @@ def main():
     #     return new_cmap
     def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
         new_cmap = colors.LinearSegmentedColormap.from_list('truncated_%s' % cmap.name,
-            cmap(np.linspace(minval, maxval, n)))
+                                                            cmap(np.linspace(minval, maxval, n)))
         return new_cmap
 
-    ax = sns.heatmap(mat, cmap = truncate_colormap(cmap,0.25, 0.75,n=200), linewidths=.05, xticklabels=components, 
-        yticklabels=yticklabels, vmin=0, vmax=1, alpha = 0.90)
+    ax = sns.heatmap(mat, cmap = truncate_colormap(cmap,0.25, 0.75,n=200), linewidths=.05, xticklabels=components,
+                     yticklabels=yticklabels, vmin=0, vmax=1, alpha = 0.90)
     ax.tick_params(axis='y', which='major', labelsize= 10)
 
     colorbar = ax.collections[0].colorbar
