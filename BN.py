@@ -35,7 +35,7 @@ def BN(components, n_iter=25, orders=500):
     if (n_iter % 1 != 0) or (orders % 1 != 0):
         raise ValueError("Number of iterations and orders must be integers")
     
-    temp_mat = np.zeros((n_iter + 1, len(components), orders))
+    temp_mat = np.zeros((n_iter, len(components), orders))
 
     for k in np.arange(orders):
         comp = list(enumerate(components))
@@ -243,13 +243,13 @@ def BN(components, n_iter=25, orders=500):
             assert list(c) == [components[a] for a in indices]
             indices = np.sort(list(indices))
             temp_mat[j, :, k] = [x[components[a]] for a in indices]
-        temp_mat[n_iter, :, k] = np.average(
-            temp_mat[0:n_iter - 1, :, k], axis=0)
+        # temp_mat[n_iter, :, k] = np.average(temp_mat[0:n_iter - 1, :, k], axis=0)
     return temp_mat
 
 
 def main():
     np.random.seed(0)
+    plt.rcParams['figure.dpi'] = 300
 
     components = ["Virus", "Viral_Repl", "ACE2", "PKC", "ANG_2_T1R", "ANG_2",
                   "ANG_1_7", "ADAM_17", "SIL6R", "TLR4", "RIG1", "NFKB",
@@ -269,7 +269,7 @@ def main():
     mat = np.average(BN(comp_edit, n_iter, orders), axis=2)
 
     yticklabels = [str(x) for x in 1 + np.arange(n_iter)]
-    yticklabels.append("Average")
+    # yticklabels.append("Average")
 
     cmap = cm.get_cmap('icefire_r')
 

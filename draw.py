@@ -2,23 +2,32 @@ from pyboolnet import file_exchange
 from pyboolnet import state_transition_graphs as stgs
 from pyboolnet.interaction_graphs import primes2igraph, igraph2image, add_style_interactionsigns
 
-primes = file_exchange.bnet2primes("BN.bnet")
+filename = 'BN.bnet'
+
+primes = file_exchange.bnet2primes(filename)
 # print(file_exchange.primes2bnet(primes))
 igraph = primes2igraph(primes)
-igraph.graph["splines"] = "curved"
-igraph.graph["label"] = "BN Model!"
-for x in igraph.nodes:
-    if "GF" in x:
-        x["shape"] = "square"
-        x["fillcolor"] = "lightblue"
+igraph.graph["splines"] = "true"
+igraph.graph["rankdir"] = "LR"
+# igraph.graph["concentrate"] = "true"
+igraph.graph["overlap"] = "scale"
+igraph.graph["nodesep"] = "0.25"
+igraph.graph["ranksep"] = "0.5"
+igraph.graph["dpi"] = "600"
+igraph.graph["ratio"] = "fill"
+igraph.graph["fontname"] = "Helvetica"
+igraph.graph["fontcolor"] = "black"
+igraph.graph["fontsize"] = "30"
+
 add_style_interactionsigns(igraph)
 for engine in ["dot", "neato", "fdp", "sfdp", "circo", "twopi"]:
     try:
         igraph2image(igraph, f'bnet_{engine}.png', layout_engine = engine)
     except:
+        print(f"Failed to draw with {engine} engine")
         pass
 
-with open(r"BN.bnet", 'r') as fp:
+with open(filename, 'r') as fp:
     lines = fp.readlines()
 all_components = [line.split(',')[0] for line in lines]
 
