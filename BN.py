@@ -269,7 +269,7 @@ def main():
     mat = np.average(BN(comp_edit, n_iter, orders), axis=2)
 
     yticklabels = [str(x) for x in 1 + np.arange(n_iter)]
-    # yticklabels.append("Average")
+    # # yticklabels.append("Average")
 
     cmap = cm.get_cmap('icefire_r')
 
