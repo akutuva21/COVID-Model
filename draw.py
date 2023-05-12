@@ -17,7 +17,7 @@ igraph.graph["dpi"] = "600"
 igraph.graph["ratio"] = "fill"
 igraph.graph["fontname"] = "Helvetica"
 igraph.graph["fontcolor"] = "black"
-igraph.graph["fontsize"] = "30"
+igraph.graph["fontsize"] = "50"
 
 add_style_interactionsigns(igraph)
 for engine in ["dot", "neato", "fdp", "sfdp", "circo", "twopi"]:

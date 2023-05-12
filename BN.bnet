@@ -1,6 +1,6 @@
 Virus, Virus
-Viral_Repl, Virus & !ISG
-ACE2, !RIG1 & !Virus & !MAPK_p38
+Viral_Repl, Virus & mTORC2 & !ISG
+ACE2, !Virus & !(MAPK_p38 | STAT1)
 ANG_2_T1R, ANG_2
 ADAM_17, ANG_2_T1R
 TLR4, Virus
@@ -12,14 +12,14 @@ STAT3, IL6R
 IL6, NFKB | MAPK_p38
 IL6R, IL6
 SIL6R, ADAM_17
-IKKB_a_b, !(TLR4 | IL1R | RIG1 | TNFR)
+IKKB_a_b, !(TLR4 | IL1R | RIG1 | TNFR | ROS | AKT)
 TNF, ADAM_17 | NFKB | MAPK_p38
 ISG, STAT1
 C_FLIP, NFKB & !FOXO3A
 NRPL3, NFKB
 CASP1, NRPL3
-IFNR, INF_a_b
-Bax_Bak, !BCL_2 & TBid
+IFNR, IFN_a_b
+Bax_Bak, !BCL_2 & tBid
 CASP9, Bax_Bak
 TNFR, TNF
 Pyroptosis, CASP1
@@ -28,26 +28,25 @@ IL1R, IL1
 MLKL, RIPK1_3
 Necroptosis, MLKL
 RIPK1_3, (RIG1 | TLR4 | STAT1) & !CASP8
-ANG_2, ANG_2
-ANG_1-7, ACE2 & ANG_2
-ROS, ANG_2 & !ANG_1_7
+ANG_2, !ACE2
+ROS, ANG_2_T1R
 RTK, Virus
-AKT, PI3K | mTORC2 | TLR4
+AKT, PI3K | mTORC2
 FOXO3A, (ROS | STAT3) & !(IKKB_a_b | AKT)
-TSC2, !AKT & !RTK
+TSC2, !AKT | !RTK
 mTORC1, !TSC2
 PKC, ANG_2_T1R | mTORC2
 mTORC2, PI3K
-CASP8, FADD | ROS | !AKT
+CASP8, (FADD | ROS) & !AKT
 FADD, TNFR
 Apoptosis, CASP8 | CASP9
 BCL_2, (NFKB | CREB_1) & !BAD
 BAD, !AKT
 CREB_1, AKT
 tBid, CASP8 | ROS
-INF_a_b, (IRF3 | NFKB) & !(Viral_Proteins)
-Cyt_R, TNF | IL6
-PI3K, RTK | IFNR | Cyt_R
+IFN_a_b, (IRF3) & !(Viral_Repl)
+CRP, IL6R | STAT1 | NFKB
+PI3K, RTK | TLR4 | CRP
 Autophagy, !mTORC1
-Viral_Proteins, mTORC1
-MAPK_p38, (ANG_2_T1R | Virus) & !ANG_1_7
+MAPK_p38, (ANG_2_T1R | TLR4)
+HIF_1a, (NFKB | STAT3 | mTORC1) & ROS

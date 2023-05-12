@@ -51,7 +51,7 @@ def BN(components, n_iter=25, orders=500):
                 if i == "Virus":
                     x[i] = x["Virus"]
                 elif i == "Viral_Repl":
-                    x[i] = (x["Virus"]) and not x["ISG"]
+                    x[i] = (x["Virus"] and x['mTORC2']) and not x["ISG"] # probably could add mtorc2
                 elif i == "ANG_2_T1R":
                     x[i] = x["ANG_2"]
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8193025/
@@ -142,16 +142,20 @@ def BN(components, n_iter=25, orders=500):
                     # https://www.sciencedirect.com/science/article/pii/S1097276514008661
                 elif i == "ANG_2":
                     # ACE2 converts Ang II into Ang-(1–7")
-                    x[i] = x[i]
-                elif i == "ANG_1_7":
-                    x[i] = x["ACE2"] and x["ANG_2"]
+                    x[i] = not x['ACE2']
+                # elif i == "ANG_1_7":
+                    # x[i] = x["ACE2"]
+                # elif i == "ANG_1_7R":
+                    # x[i] = x["ANG_1_7"]
                 elif i == "ROS":
-                    x[i] = x["ANG_2"] and not x["ANG_1_7"]  # not x["FOXO3A"]
+                    # https://link.springer.com/article/10.1007/s10930-020-09935-8
+                    x[i] = x["ANG_2_T1R"] # and not x["ANG_1_7R"]  # not x["FOXO3A"]
+                    # must find what directly causes ROS
                 elif i == "RTK":
                     x[i] = x["Virus"]
                 elif i == "AKT":
                     # maybe tlr4, not sure
-                    x[i] = x["PI3K"] or x["mTORC2"] or x["TLR4"]
+                    x[i] = x["mTORC2"] or x["PI3K"]
                 elif i == "FOXO3A":
                     # x[i] = x["Virus"]
                     x[i] = (x["ROS"] or x["STAT3"]) and not (
@@ -159,7 +163,7 @@ def BN(components, n_iter=25, orders=500):
                     # no direct relation
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8187014/"
                 elif i == "TSC2":
-                    x[i] = not x["AKT"] and not x["RTK"]
+                    x[i] = not x["AKT"] or not x["RTK"]
                 elif i == "mTORC1":
                     x[i] = not x["TSC2"]
                 elif i == "PKC":
@@ -169,7 +173,7 @@ def BN(components, n_iter=25, orders=500):
                     x[i] = x["PI3K"]
                 elif i == "CASP8":
                     # not sure about the or not x["AKT"]
-                    x[i] = x["FADD"] or x["ROS"] or not x["AKT"]
+                    x[i] = (x["FADD"] or x["ROS"]) and not x["AKT"]
                     # or not x["C_FLIP"]
                     # too many, will assume all is true
                     # only certain drugs inhibit casp 8
@@ -195,30 +199,30 @@ def BN(components, n_iter=25, orders=500):
                     x[i] = x["CASP8"] or x["ROS"]
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4882451/
                 elif i == "IFN a/b":
-                    x[i] = (x["IRF3"] or x["NFKB"]) and not (
-                        x["Viral_Proteins"])
+                    x[i] = (x["IRF3"]) and not (x["Viral_Repl"])
                     # equivalent to Type 1 IFN
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7995242/
-                elif i == "Cyt_R":
-                    x[i] = x["TNF"] or x["IL6"]
+                elif i == "CRP":
+                    # https://pubmed.ncbi.nlm.nih.gov/29499302/
+                    x[i] = x['IL6R'] or x["STAT1"] or x['NFKB'] 
                 elif i == "PI3K":
-                    x[i] = x["RTK"] or x["IFNR"] or x["Cyt_R"]
+                    x[i] = x["RTK"] or x["CRP"] or x['TLR4'] #or x["IFNR"]
                 elif i == "Autophagy":
                     # phenotype
                     x[i] = not x["mTORC1"]
-                elif i == "Viral_Proteins":
+                # elif i == "Viral_Proteins":
+                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7473213/
                     # examples of viral proteins are S6K and 4E-BP1
-                    x[i] = x["mTORC1"]
-                
+                    # x[i] = x["mTORC1"]
                 elif i == "MAPK_p38":
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7228886/
                     # https://www.frontiersin.org/articles/10.3389/fphar.2021.631879/full
-                    x[i] = (x["ANG_2_T1R"] or x["Virus"]) and not x["ANG_1_7"]
+                    x[i] = (x["ANG_2_T1R"] or x["TLR4"]) #and not x["ANG_1_7R"]
                 elif i == "ACE2":
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7228886/
                     # PKC mediates ACE2 shedding from tubular cells
                     # or x["RIG1"]) #x["PKC"] and not x["ADAM_17"]
-                    x[i] = not x["RIG1"] and not x["Virus"] and x["MAPK_p38"]
+                    x[i] = not x["Virus"] and (x["MAPK_p38"] or x['STAT1'])
                     # x[i] = not x["Virus"]
                     # not sure about if there is a relation since Virus just
                     # relies on ACE2 to enter cells, the presence of ACE2
@@ -236,8 +240,11 @@ def BN(components, n_iter=25, orders=500):
                     # all phosphorylate the complex to release ikkb
                     # https://www.nature.com/articles/7290257
                     # https://pubmed.ncbi.nlm.nih.gov/16028365/
-                    x[i] = not (x["TLR4"] or x["IL1R"]
-                                or x["RIG1"] or x["TNFR"])
+                    x[i] = not (x["TLR4"] or x["IL1R"] or x['AKT']
+                                or x["RIG1"] or x["TNFR"] or x['ROS'])
+                elif i == "HIF_1a":
+                    x[i] = (x['NFKB'] or x['STAT3'] or x['mTORC1']) and x['ROS']
+                    # check on this later
                 else:
                     raise NotImplementedError(f'{i} was not executed (check names)')
             assert list(c) == [components[a] for a in indices]
@@ -251,15 +258,15 @@ def main():
     np.random.seed(0)
     plt.rcParams['figure.dpi'] = 300
 
-    components = ["Virus", "Viral_Repl", "ACE2", "PKC", "ANG_2_T1R", "ANG_2",
-                  "ANG_1_7", "ADAM_17", "SIL6R", "TLR4", "RIG1", "NFKB",
+    components = ["Virus", "Viral_Repl", "ACE2", "PKC", "ANG_2", "ANG_2_T1R", 
+                  "ADAM_17", "SIL6R", "TLR4", "RIG1", "NFKB",
                   "IKKB a/b", "TNF", "IRF3", "STAT1", "STAT3", "IL6", "IL6R",
                   "ISG", "C_FLIP", "IFN a/b", "NRLP3", "CASP1", "FOXO3A",
                   "IFNR", "BCL_2", "tBid", "Bax_Bak", "CASP9", "ROS", "TNFR",
                   "FADD", "Pyroptosis", "IL1", "IL1R", "MLKL", "Necroptosis",
                   "RIPK1&3", "CASP8", "Apoptosis", "RTK", "PI3K", "AKT",
-                  "TSC2", "mTORC1", "mTORC2", "BAD", "CREB_1", "Cyt_R",
-                  "Autophagy", "Viral_Proteins", "MAPK_p38"]
+                  "TSC2", "mTORC1", "mTORC2", "BAD", "CREB_1", "CRP",
+                  "Autophagy", "MAPK_p38", "HIF_1a"]
     comp_edit = copy.deepcopy(components)
     n_iter = 25
     orders = 250
@@ -281,9 +288,11 @@ def main():
 
     edited_comp = [x.replace("_", " ").replace("a/b", "α/β")
                    for x in components]
-    ax = sns.heatmap(mat, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
+    mat_trunc = mat[0:10]
+    yticklabels_trunc = yticklabels[0:10]
+    ax = sns.heatmap(mat_trunc, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
                      linewidths=.05, xticklabels=edited_comp,
-                     yticklabels=yticklabels, vmin=0, vmax=1, alpha=1)
+                     yticklabels=yticklabels_trunc, vmin=0, vmax=1, alpha=1)
     ax.tick_params(axis='y', which='major', labelsize=10)
 
     # colorbar = ax.collections[0].colorbar
@@ -300,9 +309,10 @@ def main():
     fig.set_size_inches(10, 7, forward=True)
 
     fig.tight_layout()
+    fig.set_dpi(300)
     # fig.show()
     # fig.savefig('plot.svg')
-    fig.savefig('plot.png')
+    fig.savefig('plot_2.png')
 
 
 if __name__ == '__main__':
