@@ -76,7 +76,7 @@ def BN(components, n_iter=25, orders=500):
                     # https://www.news-medical.net/news/20210215/RIG-1-like-receptors-may-play-dominant-role-in-suppressing-SARS-CoV-2-infection.aspx
                 elif i == "NFKB":
                     # x["ANG_2_T1R"] or x["PKC"] or x["RIG1"] or
-                    x[i] = not x["IKKB a/b"]
+                    x[i] = x["IKKB a/b"] or x['ROS']
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7648206/"
                 elif i == "IRF3":
                     x[i] = x["RIG1"]  # and not x["Viral_Repl"]
@@ -151,8 +151,8 @@ def BN(components, n_iter=25, orders=500):
                     # https://link.springer.com/article/10.1007/s10930-020-09935-8
                     x[i] = x["ANG_2_T1R"] # and not x["ANG_1_7R"]  # not x["FOXO3A"]
                     # must find what directly causes ROS
-                elif i == "RTK":
-                    x[i] = x["Virus"]
+                # elif i == "RTK":
+                #    x[i] = x["Virus"]
                 elif i == "AKT":
                     # maybe tlr4, not sure
                     x[i] = x["mTORC2"] or x["PI3K"]
@@ -163,21 +163,24 @@ def BN(components, n_iter=25, orders=500):
                     # no direct relation
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8187014/"
                 elif i == "TSC2":
-                    x[i] = not x["AKT"] or not x["RTK"]
+                    x[i] = not x["AKT"] # or not x["RTK"]
                 elif i == "mTORC1":
-                    x[i] = not x["TSC2"]
-                elif i == "PKC":
-                    x[i] = x["ANG_2_T1R"] or x["mTORC2"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9000463/
+                    x[i] = not x["TSC2"] or x['IKKB a/b']
+                # elif i == "PKC":
+                #     x[i] = x["ANG_2_T1R"] or x["mTORC2"] or x['VEGF']
+                #     https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9000463/
+                # elif i == "Phagocytosis":
+                #     x[i] = x["PKC"]
                 elif i == "mTORC2":
-                    x[i] = x["PI3K"]
+                    x[i] = x["PI3K"] or x['IKKB a/b']
                 elif i == "CASP8":
                     # not sure about the or not x["AKT"]
-                    x[i] = (x["FADD"] or x["ROS"]) and not x["AKT"]
+                    x[i] = (x["FADD"] or x["ROS"]) and not x["AKT"] or not x["C_FLIP"]
                     # or not x["C_FLIP"]
                     # too many, will assume all is true
                     # only certain drugs inhibit casp 8
                     # https://www.nature.com/articles/1204926
+                    # assuming that c_flip inhibits casp 8 based on kegg
                 elif i == "FADD":
                     x[i] = x["TNFR"]
                     # Do more research on this later - previously was x["RIG1"]
@@ -188,7 +191,7 @@ def BN(components, n_iter=25, orders=500):
                     # https://pubmed.ncbi.nlm.nih.gov/10200555/
                 elif i == "BCL_2":
                     # previously and not x["AKT"]
-                    x[i] = (x["NFKB"] or x["CREB_1"]) and not x["BAD"]
+                    x[i] = (x["NFKB"] or x["CREB_1"]) and not x["BAD"] or x["HIF_1a"]
                 elif i == "BAD":
                     # new
                     x[i] = not x["AKT"]
@@ -204,9 +207,11 @@ def BN(components, n_iter=25, orders=500):
                     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7995242/
                 elif i == "CRP":
                     # https://pubmed.ncbi.nlm.nih.gov/29499302/
-                    x[i] = x['IL6R'] or x["STAT1"] or x['NFKB'] 
+                    x[i] = x['IL6R'] or x["STAT1"] or x['NFKB']
+                # elif i == "VEGF":
+                #     x[i] = x["HIF_1a"]
                 elif i == "PI3K":
-                    x[i] = x["RTK"] or x["CRP"] or x['TLR4'] #or x["IFNR"]
+                    x[i] = x["CRP"] or x['TLR4'] # or x['VEGF'] # or x["IFNR"] or x["RTK"]
                 elif i == "Autophagy":
                     # phenotype
                     x[i] = not x["mTORC1"]
@@ -240,8 +245,8 @@ def BN(components, n_iter=25, orders=500):
                     # all phosphorylate the complex to release ikkb
                     # https://www.nature.com/articles/7290257
                     # https://pubmed.ncbi.nlm.nih.gov/16028365/
-                    x[i] = not (x["TLR4"] or x["IL1R"] or x['AKT']
-                                or x["RIG1"] or x["TNFR"] or x['ROS'])
+                    x[i] = (x["TLR4"] or x["IL1R"] or x["RIG1"]
+                                 or x["TNFR"] or x['AKT'])
                 elif i == "HIF_1a":
                     x[i] = (x['NFKB'] or x['STAT3'] or x['mTORC1']) and x['ROS']
                     # check on this later
@@ -258,13 +263,13 @@ def main():
     np.random.seed(0)
     plt.rcParams['figure.dpi'] = 300
 
-    components = ["Virus", "Viral_Repl", "ACE2", "PKC", "ANG_2", "ANG_2_T1R", 
-                  "ADAM_17", "SIL6R", "TLR4", "RIG1", "NFKB",
+    components = ["Virus", "Viral_Repl", "ACE2", "ANG_2", 
+                  "ANG_2_T1R", "ADAM_17", "TLR4", "RIG1", "NFKB", "SIL6R",
                   "IKKB a/b", "TNF", "IRF3", "STAT1", "STAT3", "IL6", "IL6R",
                   "ISG", "C_FLIP", "IFN a/b", "NRLP3", "CASP1", "FOXO3A",
                   "IFNR", "BCL_2", "tBid", "Bax_Bak", "CASP9", "ROS", "TNFR",
                   "FADD", "Pyroptosis", "IL1", "IL1R", "MLKL", "Necroptosis",
-                  "RIPK1&3", "CASP8", "Apoptosis", "RTK", "PI3K", "AKT",
+                  "RIPK1&3", "CASP8", "Apoptosis", "PI3K", "AKT",
                   "TSC2", "mTORC1", "mTORC2", "BAD", "CREB_1", "CRP",
                   "Autophagy", "MAPK_p38", "HIF_1a"]
     comp_edit = copy.deepcopy(components)
