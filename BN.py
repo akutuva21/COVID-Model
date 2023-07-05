@@ -5,7 +5,6 @@ import matplotlib.cm as cm
 import seaborn as sns
 import copy
 
-
 def BN(components, n_iter=25, orders=500):
     '''Generates a boolean network based on the provided components
 
@@ -15,7 +14,7 @@ def BN(components, n_iter=25, orders=500):
     n_iter : int, optional
         Number of iterations to run the network for (default is 25)
     orders : int, optional
-        Number of samples to take for each iteration (default is 250)\
+        Number of samples to take for each iteration (default is 250)
         Averaged at the end of the function
     
     Raises
@@ -36,242 +35,90 @@ def BN(components, n_iter=25, orders=500):
         raise ValueError("Number of iterations and orders must be integers")
     
     temp_mat = np.zeros((n_iter, len(components), orders))
+    operations = {
+        "ACE2": lambda: x.__setitem__("ACE2", not x["Virus"] or x["FOXO3A"]),
+        "ADAM_17": lambda: x.__setitem__("ADAM_17", x["ANG_2_T1R"]),
+        "AKT": lambda: x.__setitem__("AKT", (x["mTORC2"] or x["PI3K"]) and not x["FOXO3A"]),
+        "ANG_2": lambda: x.__setitem__("ANG_2", not x["ACE2"]),
+        "ANG_2_T1R": lambda: x.__setitem__("ANG_2_T1R", x["ANG_2"]),
+        "Apoptosis": lambda: x.__setitem__("Apoptosis", x["CASP8"] or x["CASP9"]),
+        "Autophagy": lambda: x.__setitem__("Autophagy", not x["mTORC1"]),
+        "BCL_2": lambda: x.__setitem__("BCL_2", (x["NFKB"] or x["CREB_1"] or x["HIF_1a"])),
+        "Bax_Bak": lambda: x.__setitem__("Bax_Bak", not x["BCL_2"]),
+        "CASP1": lambda: x.__setitem__("CASP1", x["NLRP3"]),
+        "CASP8": lambda: x.__setitem__("CASP8", (x["FADD"] and not x["C_FLIP"]) and not x["FOXO3A"]),
+        "CASP9": lambda: x.__setitem__("CASP9", x["Bax_Bak"] or x["tBid"]),
+        "C_FLIP": lambda: x.__setitem__("C_FLIP", x["NFKB"] and not x["FOXO3A"]),
+        "CREB_1": lambda: x.__setitem__("CREB_1", x["AKT"]),
+        "FADD": lambda: x.__setitem__("FADD", x["TNFR"]),
+        "FOXO3A": lambda: x.__setitem__("FOXO3A", (x["STAT3"] or x["MAPK_p38"]) and not (x["IKKB a/b"] or x["AKT"])),
+        "HIF_1a": lambda: x.__setitem__("HIF_1a", (x["NFKB"] or x["mTORC1"]) and x["ROS"]),
+        "IFN a/b": lambda: x.__setitem__("IFN a/b", (x["IRF3"]) and not (x["Viral_Repl"])),
+        "IFNR": lambda: x.__setitem__("IFNR", x["STAT1"]),
+        "IL1": lambda: x.__setitem__("IL1", x["CASP1"] or x["CASP8"] or x["NFKB"]),
+        "IL1R": lambda: x.__setitem__("IL1R", x["IL1"]),
+        "IL6": lambda: x.__setitem__("IL6", x["NFKB"] or x["MAPK_p38"]),
+        "IL6R": lambda: x.__setitem__("IL6R", x["IL6"]),
+        "IRF3": lambda: x.__setitem__("IRF3", x["RIG1"]),
+        "IKKB a/b": lambda: x.__setitem__("IKKB a/b", (x["TLR4"] or x["IL1R"] or x["TNFR"] or x["AKT"])),
+        "ISG": lambda: x.__setitem__("ISG", x["STAT1"]),
+        "MAPK_p38": lambda: x.__setitem__("MAPK_p38", (x["ANG_2_T1R"] or x["TLR4"] or x["ROS"])),
+        "MLKL": lambda: x.__setitem__("MLKL", x["RIPK1&3"]),
+        "mTORC1": lambda: x.__setitem__("mTORC1", not x["TSC2"]),
+        "mTORC2": lambda: x.__setitem__("mTORC2", x["PI3K"]),
+        "Necroptosis": lambda: x.__setitem__("Necroptosis", x["MLKL"]),
+        "NFKB": lambda: x.__setitem__("NFKB", (x["IKKB a/b"] or x["ROS"]) and not x["FOXO3A"]),
+        "NLRP3": lambda: x.__setitem__("NLRP3", x["NFKB"] and x["RIG1"]),
+        "Pyroptosis": lambda: x.__setitem__("Pyroptosis", x["CASP1"]),
+        "PI3K": lambda: x.__setitem__("PI3K", x["TLR4"] or x["ROS"] or x["IL6R"]),
+        "RIG1": lambda: x.__setitem__("RIG1", x["Viral_Repl"]),
+        "RIPK1&3": lambda: x.__setitem__("RIPK1&3", (x["RIG1"] or x["TLR4"] or x["FADD"])),
+        "ROS": lambda: x.__setitem__("ROS", (x["ANG_2_T1R"] or x["MAPK_p38"]) and not x["FOXO3A"]),
+        "SIL6R": lambda: x.__setitem__("SIL6R", x["ADAM_17"] or x["IL6"]),
+        "STAT1": lambda: x.__setitem__("STAT1", x["IFNR"]),
+        "STAT3": lambda: x.__setitem__("STAT3", x["IL6R"]),
+        "tBid": lambda: x.__setitem__("tBid", x["CASP8"] or x["ROS"]),
+        "TLR4": lambda: x.__setitem__("TLR4", x["Virus"]),
+        "TNF": lambda: x.__setitem__("TNF", x["ADAM_17"] or x["NFKB"] or x["MAPK_p38"]),
+        "TNFR": lambda: x.__setitem__("TNFR", x["TNF"]),
+        "TSC2": lambda: x.__setitem__("TSC2", not x["AKT"]),
+        "Viral_Repl": lambda: x.__setitem__("Viral_Repl", (x["Virus"] and x["mTORC2"]) and not x["ISG"]),
+        "Virus": lambda: x.__setitem__("Virus", x["Virus"])
+    }
 
-    for k in np.arange(orders):
-        comp = list(enumerate(components))
-        x = {y: False for y in components}
-        assert len(x) == len(components)
-        x["Virus"] = True
-        x["ACE2"] = True
-
-        for j in np.arange(n_iter):
-            np.random.shuffle(comp)
-            indices, c = zip(*comp)
-            for i in c:
-                if i == "Virus":
-                    x[i] = x["Virus"]
-                elif i == "Viral_Repl":
-                    x[i] = (x["Virus"] and x['mTORC2']) and not x["ISG"] # probably could add mtorc2
-                elif i == "ANG_2_T1R":
-                    x[i] = x["ANG_2"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8193025/
-                    # Ang II acts on angiotensin type 1 (AT1") receptors and
-                    # activates the NADPH-oxidase complex producing superoxide
-                    # and promoting cell pro-oxidative and pro-inflammatory
-                    # responses
-                elif i == "ADAM_17":
-                    # A2_t1r activates ADAM 17, which promotes ACE2 shedding
-                    # (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8185693/")
-                    x[i] = x["ANG_2_T1R"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7224649/
-                elif i == "TLR4":
-                    x[i] = x["Virus"]
-                    # Spike glycoprotein, the major infective surface protein
-                    # of SARS-CoV-2 has been found as a ligand for human TLR4
-                    # https://www.futuremedicine.com/doi/full/10.2217/fvl-2021-0249
-                elif i == "RIG1":
-                    x[i] = x["Viral_Repl"]
-                    # AV activity of RIG-1 may inhibit of viral entry into the
-                    # host cell by preventing the expression of ACE2
-                    # https://www.news-medical.net/news/20210215/RIG-1-like-receptors-may-play-dominant-role-in-suppressing-SARS-CoV-2-infection.aspx
-                elif i == "NFKB":
-                    # x["ANG_2_T1R"] or x["PKC"] or x["RIG1"] or
-                    x[i] = x["IKKB a/b"] or x['ROS']
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7648206/"
-                elif i == "IRF3":
-                    x[i] = x["RIG1"]  # and not x["Viral_Repl"]
-                    # https://journals.asm.org/doi/10.1128/CMR.00299-20
-                    # https://www.frontiersin.org/articles/10.3389/fcimb.2021.766922/full
-                elif i == "STAT1":
-                    x[i] = x["IFNR"]  # and not x["Viral_Repl"]
-                    # After the infection, STAT1 activity is inhibited by
-                    # the SARS-CoV-2 proteins, NSP1, and ORF6
-                    # https://www.nature.com/articles/s41418-020-00633-7
-                elif i == "STAT3":
-                    # or (x["SIL6R"] and x["IL6"])
-                    x[i] = x["IL6R"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7937040/
-                elif i == "IL6R":
-                    x[i] = x["IL6"]
-                    # https://www.kegg.jp/pathway/map05171
-                elif i == "SIL6R":
-                    x[i] = x["ADAM_17"]  # or x["IL6"]
-                elif i == "ISG":
-                    x[i] = x["STAT1"]
-                    # https://www.nature.com/articles/s41586-021-03234-7
-                elif i == "C_FLIP":
-                    x[i] = x["NFKB"] and not x["FOXO3A"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4219646/
-                elif i == "NRLP3":
-                    x[i] = x["NFKB"]
-                    # https://www.nature.com/articles/ni.3772
-                elif i == "CASP1":
-                    x[i] = x["NRLP3"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6651423/
-                elif i == "IFNR":
-                    x[i] = x["IFN a/b"]
-                    # need to confirm more
-                    # https://www.frontiersin.org/articles/10.3389/fimmu.2020.606456/full
-                elif i == "Bax_Bak":
-                    x[i] = not x["BCL_2"] and x["tBid"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4219646/
-                elif i == "CASP9":
-                    x[i] = x["Bax_Bak"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4219646/
-                elif i == "TNFR":
-                    x[i] = x["TNF"]
-                    # Do more research later
-                    # https://www.frontiersin.org/articles/10.3389/fimmu.2020.585880/full
-                elif i == "Pyroptosis":
-                    x[i] = x["CASP1"]
-                    # https://www.nature.com/articles/s41467-019-09753-2
-                elif i == "IL1R":
-                    x[i] = x["IL1"]
-                elif i == "MLKL":
-                    # and not (x["NRLP3"]")# or x["CASP1"]")
-                    x[i] = x["RIPK1&3"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5321867/
-                    # read more of this later
-                elif i == "Necroptosis":
-                    x[i] = x["MLKL"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5321867/
-                elif i == "RIPK1&3":
-                    x[i] = (x["RIG1"] or x["TLR4"]
-                            or x["STAT1"]) and not x["CASP8"]
-                    # read more later
-                    # https://www.sciencedirect.com/science/article/pii/S1097276514008661
-                elif i == "ANG_2":
-                    # ACE2 converts Ang II into Ang-(1–7")
-                    x[i] = not x['ACE2']
-                # elif i == "ANG_1_7":
-                    # x[i] = x["ACE2"]
-                # elif i == "ANG_1_7R":
-                    # x[i] = x["ANG_1_7"]
-                elif i == "ROS":
-                    # https://link.springer.com/article/10.1007/s10930-020-09935-8
-                    x[i] = x["ANG_2_T1R"] # and not x["ANG_1_7R"]  # not x["FOXO3A"]
-                    # must find what directly causes ROS
-                # elif i == "RTK":
-                #    x[i] = x["Virus"]
-                elif i == "AKT":
-                    # maybe tlr4, not sure
-                    x[i] = x["mTORC2"] or x["PI3K"]
-                elif i == "FOXO3A":
-                    # x[i] = x["Virus"]
-                    x[i] = (x["ROS"] or x["STAT3"]) and not (
-                        x["IKKB a/b"] or x["AKT"])
-                    # no direct relation
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8187014/"
-                elif i == "TSC2":
-                    x[i] = not x["AKT"] # or not x["RTK"]
-                elif i == "mTORC1":
-                    x[i] = not x["TSC2"] or x['IKKB a/b']
-                # elif i == "PKC":
-                #     x[i] = x["ANG_2_T1R"] or x["mTORC2"] or x['VEGF']
-                #     https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9000463/
-                # elif i == "Phagocytosis":
-                #     x[i] = x["PKC"]
-                elif i == "mTORC2":
-                    x[i] = x["PI3K"] or x['IKKB a/b']
-                elif i == "CASP8":
-                    # not sure about the or not x["AKT"]
-                    x[i] = (x["FADD"] or x["ROS"]) and not x["AKT"] or not x["C_FLIP"]
-                    # or not x["C_FLIP"]
-                    # too many, will assume all is true
-                    # only certain drugs inhibit casp 8
-                    # https://www.nature.com/articles/1204926
-                    # assuming that c_flip inhibits casp 8 based on kegg
-                elif i == "FADD":
-                    x[i] = x["TNFR"]
-                    # Do more research on this later - previously was x["RIG1"]
-                    # https://pubmed.ncbi.nlm.nih.gov/9430227/
-                elif i == "Apoptosis":
-                    # or x["CASP3"], previously was just 8
-                    x[i] = x["CASP8"] or x["CASP9"]
-                    # https://pubmed.ncbi.nlm.nih.gov/10200555/
-                elif i == "BCL_2":
-                    # previously and not x["AKT"]
-                    x[i] = (x["NFKB"] or x["CREB_1"]) and not x["BAD"] or x["HIF_1a"]
-                elif i == "BAD":
-                    # new
-                    x[i] = not x["AKT"]
-                elif i == "CREB_1":
-                    x[i] = x["AKT"]
-                elif i == "tBid":
-                    # added ROS
-                    x[i] = x["CASP8"] or x["ROS"]
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4882451/
-                elif i == "IFN a/b":
-                    x[i] = (x["IRF3"]) and not (x["Viral_Repl"])
-                    # equivalent to Type 1 IFN
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7995242/
-                elif i == "CRP":
-                    # https://pubmed.ncbi.nlm.nih.gov/29499302/
-                    x[i] = x['IL6R'] or x["STAT1"] or x['NFKB']
-                # elif i == "VEGF":
-                #     x[i] = x["HIF_1a"]
-                elif i == "PI3K":
-                    x[i] = x["CRP"] or x['TLR4'] # or x['VEGF'] # or x["IFNR"] or x["RTK"]
-                elif i == "Autophagy":
-                    # phenotype
-                    x[i] = not x["mTORC1"]
-                # elif i == "Viral_Proteins":
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7473213/
-                    # examples of viral proteins are S6K and 4E-BP1
-                    # x[i] = x["mTORC1"]
-                elif i == "MAPK_p38":
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7228886/
-                    # https://www.frontiersin.org/articles/10.3389/fphar.2021.631879/full
-                    x[i] = (x["ANG_2_T1R"] or x["TLR4"]) #and not x["ANG_1_7R"]
-                elif i == "ACE2":
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7228886/
-                    # PKC mediates ACE2 shedding from tubular cells
-                    # or x["RIG1"]) #x["PKC"] and not x["ADAM_17"]
-                    x[i] = not x["Virus"] and (x["MAPK_p38"] or x['STAT1'])
-                    # x[i] = not x["Virus"]
-                    # not sure about if there is a relation since Virus just
-                    # relies on ACE2 to enter cells, the presence of ACE2
-                    # promotes disease prog
-                elif i == "IL6":
-                    x[i] = x["NFKB"] or x["MAPK_p38"]
-                elif i == "TNF":
-                    x[i] = x["ADAM_17"] or x["NFKB"] or x["MAPK_p38"]
-                    # https://www.kegg.jp/pathway/map05171
-                elif i == "IL1":
-                    x[i] = x["MLKL"] or x["NFKB"] or x["MAPK_p38"]
-                    # Look into this more later
-                    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5321867/
-                elif i == "IKKB a/b":
-                    # all phosphorylate the complex to release ikkb
-                    # https://www.nature.com/articles/7290257
-                    # https://pubmed.ncbi.nlm.nih.gov/16028365/
-                    x[i] = (x["TLR4"] or x["IL1R"] or x["RIG1"]
-                                 or x["TNFR"] or x['AKT'])
-                elif i == "HIF_1a":
-                    x[i] = (x['NFKB'] or x['STAT3'] or x['mTORC1']) and x['ROS']
-                    # check on this later
+    x = {component: False for component in components}
+    x["Virus"] = True
+    x["ACE2"] = True
+    
+    for order in np.arange(orders):
+        for i in np.arange(n_iter):
+            indices = np.random.permutation(len(components))
+            for idx in indices:
+                key = components[idx]
+                if key in operations:
+                    operations[key]()
                 else:
-                    raise NotImplementedError(f'{i} was not executed (check names)')
-            assert list(c) == [components[a] for a in indices]
-            indices = np.sort(list(indices))
-            temp_mat[j, :, k] = [x[components[a]] for a in indices]
-        # temp_mat[n_iter, :, k] = np.average(temp_mat[0:n_iter - 1, :, k], axis=0)
-    return temp_mat
+                    raise NotImplementedError(f"Operation for '{key}' not defined in 'operations'")
+            indices = np.sort(indices)
+            temp_mat[i, :, order] = [x[components[a]] for a in indices]
 
+    return temp_mat
 
 def main():
     np.random.seed(0)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     plt.rcParams['figure.dpi'] = 300
 
     components = ["Virus", "Viral_Repl", "ACE2", "ANG_2", 
                   "ANG_2_T1R", "ADAM_17", "TLR4", "RIG1", "NFKB", "SIL6R",
                   "IKKB a/b", "TNF", "IRF3", "STAT1", "STAT3", "IL6", "IL6R",
-                  "ISG", "C_FLIP", "IFN a/b", "NRLP3", "CASP1", "FOXO3A",
+                  "ISG", "C_FLIP", "IFN a/b", "NLRP3", "CASP1", "FOXO3A",
                   "IFNR", "BCL_2", "tBid", "Bax_Bak", "CASP9", "ROS", "TNFR",
                   "FADD", "Pyroptosis", "IL1", "IL1R", "MLKL", "Necroptosis",
                   "RIPK1&3", "CASP8", "Apoptosis", "PI3K", "AKT",
-                  "TSC2", "mTORC1", "mTORC2", "BAD", "CREB_1", "CRP",
+                  "TSC2", "mTORC1", "mTORC2", "CREB_1",
                   "Autophagy", "MAPK_p38", "HIF_1a"]
+    components.sort()
     comp_edit = copy.deepcopy(components)
     n_iter = 25
     orders = 250
@@ -310,14 +157,8 @@ def main():
         f'Model Component Activation in COVID-19 with {orders} Samples',
         fontsize=14)
 
-    fig = ax.get_figure()
-    fig.set_size_inches(10, 7, forward=True)
-
-    fig.tight_layout()
-    fig.set_dpi(300)
-    # fig.show()
-    # fig.savefig('plot.svg')
-    fig.savefig('plot_2.png')
+    plt.tight_layout()
+    fig.savefig('plot.png')
 
 
 if __name__ == '__main__':
