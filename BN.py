@@ -38,7 +38,7 @@ def BN(components, n_iter=25, orders=500):
     operations = {
         "ACE2": lambda: x.__setitem__("ACE2", not x["Virus"] or x["FOXO3A"]),
         "ADAM_17": lambda: x.__setitem__("ADAM_17", x["ANG_2_T1R"]),
-        "AKT": lambda: x.__setitem__("AKT", (x["mTORC2"] or x["PI3K"]) and not x["FOXO3A"]),
+        "AKT": lambda: x.__setitem__("AKT", x["mTORC2"] or x["PI3K"] or x["FOXO3A"]),
         "ANG_2": lambda: x.__setitem__("ANG_2", not x["ACE2"]),
         "ANG_2_T1R": lambda: x.__setitem__("ANG_2_T1R", x["ANG_2"]),
         "Apoptosis": lambda: x.__setitem__("Apoptosis", x["CASP8"] or x["CASP9"]),
@@ -86,11 +86,11 @@ def BN(components, n_iter=25, orders=500):
         "Virus": lambda: x.__setitem__("Virus", x["Virus"])
     }
 
-    x = {component: False for component in components}
-    x["Virus"] = True
-    x["ACE2"] = True
-    
     for order in np.arange(orders):
+        x = {component: False for component in components}
+        x["Virus"] = True
+        x["ACE2"] = True
+
         for i in np.arange(n_iter):
             indices = np.random.permutation(len(components))
             for idx in indices:
