@@ -48,29 +48,24 @@ def BN(components, n_iter=25, orders=500, n_states=3):
     # Generalized NOT function for non-boolean states
     def NOT(value, n=n_states-1):
         return n - value
-
-    if components is None:
-        raise NotImplementedError("No components provided")
-    if (n_iter < 1) or (orders < 1):
-        raise ValueError("Number of iterations and orders must be positive")
-    if (n_iter % 1 != 0) or (orders % 1 != 0):
-        raise ValueError("Number of iterations and orders must be integers")
     
-    def mTORC2_func(x, n_states=n_states):
-        s = np.divide(x["PI3K"] + x["IKKB a/b"], 2.0) - x["mTORC1"]
-        if s > x["mTORC2"]:
-            x["mTORC2"] += 1
-        elif s < x["mTORC2"]:
-            x["mTORC2"] -= 1
+    def g(x, index, update_func, n_states=n_states):
+        current_state = x[index]
+        update_func()
+        new_state = x[index]
 
-        if x["mTORC2"] < 0:
-            x["mTORC2"] = 0
-        elif x["mTORC2"] > (n_states - 1):
-            x["mTORC2"] = n_states - 1
-        
-        return x["mTORC2"]
-    
-    temp_mat = np.zeros((n_iter, len(components), orders))
+        if new_state > current_state:
+            current_state += 1
+        elif new_state < current_state:
+            current_state -= 1
+
+        if current_state < 0:
+            current_state = 0
+        elif current_state > (n_states - 1):
+            current_state = n_states - 1
+
+        return current_state
+
     operations = {
         "ACE2": lambda: x.__setitem__("ACE2", OR(NOT(x["Virus"]), x["FOXO3A"], NOT(x["ADAM_17"]))), # added adam-17
         "ADAM_17": lambda: x.__setitem__("ADAM_17", OR(x["ANG_2_T1R"], x["HIF_1a"])), # added hif-1a
@@ -79,19 +74,20 @@ def BN(components, n_iter=25, orders=500, n_states=3):
         "ANG_2": lambda: x.__setitem__("ANG_2", NOT(x["ACE2"])),
         "ANG_2_T1R": lambda: x.__setitem__("ANG_2_T1R", x["ANG_2"]),
         "Apoptosis": lambda: x.__setitem__("Apoptosis", OR(x["CASP8"], x["CASP9"])),
-        "Autophagy": lambda: x.__setitem__("Autophagy", NOT(x["mTORC1"])),
-        "BCL_2": lambda: x.__setitem__("BCL_2", OR(x["NFKB"], x["CREB_1"], x["HIF_1a"])),
+        # "Autophagy": lambda: x.__setitem__("Autophagy", NOT(x["mTORC1"])),
+        "BCL_2": lambda: x.__setitem__("BCL_2", AND(OR(x["NFKB"], x["CREB_1"], x["HIF_1a"]), NOT(x["p53"]))),
         # "Bax_Bak": lambda: x.__setitem__("Bax_Bak", NOT(x["BCL_2"])),
         "CASP1": lambda: x.__setitem__("CASP1", x["NLRP3"]),
-        "CASP8": lambda: x.__setitem__("CASP8", AND(AND(x["FADD"], NOT(x["C_FLIP"])), NOT(x["FOXO3A"]))),
+        "CASP8": lambda: x.__setitem__("CASP8", OR(AND(AND(x["FADD"], NOT(x["C_FLIP"])), NOT(x["FOXO3A"])), x["p53"])),
         "CASP9": lambda: x.__setitem__("CASP9", x["tBid"]), #OR(x["Bax_Bak"], x["tBid"]))),
         "C_FLIP": lambda: x.__setitem__("C_FLIP", AND(x["NFKB"], NOT(x["FOXO3A"]))),
         "CREB_1": lambda: x.__setitem__("CREB_1", x["AKT"]),
         "FADD": lambda: x.__setitem__("FADD", x["TNFR"]),
         "FOXO3A": lambda: x.__setitem__("FOXO3A", AND(OR(x["STAT3"], x["MAPK_p38"]), NOT(OR(x["IKKB a/b"], x["AKT"])))),
-        "HIF_1a": lambda: x.__setitem__("HIF_1a", AND(OR(x["NFKB"], x["mTORC1"]), x["ROS"])),
+        "HIF_1a": lambda: x.__setitem__("HIF_1a", AND(OR(x["NFKB"], x["mTORC1"]), OR(x["ROS"], x["Hypoxia"]))),
+        "Hypoxia": lambda: x.__setitem__("Hypoxia", x["Hypoxia"]),
         "IFN a/b": lambda: x.__setitem__("IFN a/b", AND(x["IRF3"], NOT(x["Viral_Repl"]))),
-        "IFNR": lambda: x.__setitem__("IFNR", x["STAT1"]),
+        "IFNR": lambda: x.__setitem__("IFNR", x["IFN a/b"]),
         "IL1": lambda: x.__setitem__("IL1", OR(x["CASP1"], x["CASP8"], x["NFKB"])),
         "IL1R": lambda: x.__setitem__("IL1R", x["IL1"]),
         "IL6": lambda: x.__setitem__("IL6", OR(x["NFKB"], x["MAPK_p38"])),
@@ -101,13 +97,16 @@ def BN(components, n_iter=25, orders=500, n_states=3):
         "ISG": lambda: x.__setitem__("ISG", x["STAT1"]),
         "MAPK_p38": lambda: x.__setitem__("MAPK_p38", OR(x["ANG_2_T1R"], x["TLR4"], x["ROS"])),
         # "MLKL": lambda: x.__setitem__("MLKL", x["RIPK1&3"]),
-        "mTORC1": lambda: x.__setitem__("mTORC1", OR(NOT(x["TSC2"]), x["IKKB a/b"])),
-        "mTORC2": lambda: x.__setitem__("mTORC2", mTORC2_func(x)),        
+        "mTORC1": lambda: x.__setitem__("mTORC1", NOT(x["TSC2"])), #OR(x["IKKB a/b"])),
+        "mTORC2": lambda: x.__setitem__("mTORC2", AND(x["PI3K"], NOT(x["mTORC1"]))),        
         # "Necroptosis": lambda: x.__setitem__("Necroptosis", x["MLKL"]),
         "NFKB": lambda: x.__setitem__("NFKB", AND(OR(x["IKKB a/b"], x["ROS"]), NOT(x["FOXO3A"]))),
         "NLRP3": lambda: x.__setitem__("NLRP3", AND(x["NFKB"], x["RIG1"])),
+        "Nutr_Depr": lambda: x.__setitem__("Nutr_Depr", x["Nutr_Depr"]),
         # "Pyroptosis": lambda: x.__setitem__("Pyroptosis", x["CASP1"]),
-        "PI3K": lambda: x.__setitem__("PI3K", OR(x["TLR4"], x["ROS"], x["IL6R"])),
+        "p53": lambda: x.__setitem__("p53", AND(x["Hypoxia"], NOT(x["Virus"]), x["Nutr_Depr"])),
+        "PI3K": lambda: x.__setitem__("PI3K", AND(OR(x["TLR4"], x["ROS"], x["IL6R"]), NOT(x['PTEN']))),
+        "PTEN": lambda: x.__setitem__("PTEN", x["p53"]),
         "RIG1": lambda: x.__setitem__("RIG1", x["Viral_Repl"]),
         # "RIPK1&3": lambda: x.__setitem__("RIPK1&3", OR(x["RIG1"], x["TLR4"], x["FADD"])),
         "ROS": lambda: x.__setitem__("ROS", AND(OR(x["ANG_2_T1R"], x["MAPK_p38"]), NOT(x["FOXO3A"]))),
@@ -118,22 +117,36 @@ def BN(components, n_iter=25, orders=500, n_states=3):
         "TLR4": lambda: x.__setitem__("TLR4", x["Virus"]),
         "TNF": lambda: x.__setitem__("TNF", OR(x["ADAM_17"], x["NFKB"], x["MAPK_p38"])),
         "TNFR": lambda: x.__setitem__("TNFR", x["TNF"]),
-        "TSC2": lambda: x.__setitem__("TSC2", AND(NOT(x["AKT"]), NOT(x["IKKB a/b"]))),
-        "Viral_Repl": lambda: x.__setitem__("Viral_Repl", AND(x["Virus"], x["mTORC2"], NOT(x["ISG"]))),
+        "TSC2": lambda: x.__setitem__("TSC2", AND(NOT(x["AKT"]), x["p53"])), # AND(NOT(x["IKKB a/b"]))),
+        "Viral_Repl": lambda: x.__setitem__("Viral_Repl", AND(x["Virus"], x["mTORC1"], NOT(x["ISG"]))),
         "Virus": lambda: x.__setitem__("Virus", x["Virus"])
     }
+
+    if components is None:
+        raise NotImplementedError("No components provided")
+    if (n_iter < 1) or (orders < 1):
+        raise ValueError("Number of iterations and orders must be positive")
+    if (n_iter % 1 != 0) or (orders % 1 != 0):
+        raise ValueError("Number of iterations and orders must be integers")
+
+    temp_mat = np.zeros((n_iter, len(operations), orders))
+    modified_operations = {}
 
     for order in np.arange(orders):
         x = {component: 0 for component in components}
         x["Virus"] = n_states - 1
         x["ACE2"] = n_states - 1
+        x["TSC2"] = n_states - 1
+        x["Hypoxia"] = 0
 
         for i in np.arange(n_iter):
             indices = np.random.permutation(len(components))
             for idx in indices:
                 key = components[idx]
                 if key in operations:
-                    operations[key]()
+                    component, operation_lambda = key, operations[key]
+                    modified_operations[key] = lambda x, component=component, operation_lambda=operation_lambda: x.__setitem__(component, g(x, component, operation_lambda, n_states))
+                    modified_operations[key](x)
                 else:
                     raise NotImplementedError(f"Operation for '{key}' not defined in 'operations'")
             indices = np.sort(indices)
@@ -147,22 +160,29 @@ def main():
     plt.rcParams['figure.dpi'] = 300
     n_states = 3
 
+    n_iter = 25
+    orders = 250
+    # consider simplification in the future, add negative feedback loops
+
     components = ["Virus", "Viral_Repl", "ACE2", "ANG_2", 
                   "ANG_2_T1R", "ADAM_17", "TLR4", "RIG1", "NFKB", "SIL6R",
                   "IKKB a/b", "TNF", "IRF3", "STAT1", "STAT3", "IL6", "IL6R",
                   "ISG", "C_FLIP", "IFN a/b", "NLRP3", "CASP1", "FOXO3A",
                   "IFNR", "BCL_2", "tBid", "CASP9", "ROS", "TNFR",
-                  "FADD", "IL1", "IL1R",
-                  "CASP8", "Apoptosis", "PI3K", "AKT",
+                  "FADD", "IL1", "IL1R", "Hypoxia", "p53", "PTEN",
+                  "CASP8", "Apoptosis", "PI3K", "AKT", "Nutr_Depr",
                   "TSC2", "mTORC1", "mTORC2", "CREB_1",
-                  "Autophagy", "MAPK_p38", "HIF_1a"]
+                  "MAPK_p38", "HIF_1a"]
     # Removed: "Bax_Bak", Pyroptosis, MLKL, RIPK1&3, Necroptosis
     components.sort(key=lambda x: x.lower())
     comp_edit = copy.deepcopy(components)
-    n_iter = 25
-    orders = 250
-    # mat = np.zeros((n_iter + 1, len(components), orders))
-    # consider simplification in the future, add negative feedback loops
+
+    if components is None:
+        raise NotImplementedError("No components provided")
+    if (n_iter < 1) or (orders < 1):
+        raise ValueError("Number of iterations and orders must be positive")
+    if (n_iter % 1 != 0) or (orders % 1 != 0):
+        raise ValueError("Number of iterations and orders must be integers")
 
     mat = np.average(BN(comp_edit, n_iter, orders, n_states), axis=2)
 
