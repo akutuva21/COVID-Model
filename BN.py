@@ -67,7 +67,7 @@ def BN(components, n_iter=25, orders=500, n_states=3):
         return current_state
 
     operations = {
-        "ACE2": lambda: x.__setitem__("ACE2", OR(NOT(x["Virus"]), x["FOXO3A"], NOT(x["ADAM_17"]))), # added adam-17
+        "ACE2": lambda: x.__setitem__("ACE2", x["FOXO3A"] - OR(x["Virus"], x["ADAM_17"])), # added adam-17
         "ADAM_17": lambda: x.__setitem__("ADAM_17", OR(x["ANG_2_T1R"], x["HIF_1a"])), # added hif-1a
         "AKT": lambda: x.__setitem__("AKT", OR(x["mTORC2"], x["PI3K"], x["FOXO3A"])),
         # "AMPK": lambda: x.__setitem__("AMPK", ),
@@ -88,7 +88,7 @@ def BN(components, n_iter=25, orders=500, n_states=3):
         "FOXO3A": lambda: x.__setitem__("FOXO3A", OR(x["STAT3"], x["MAPK_p38"], x["Nutr_Depr"]) - OR(x["IKKB a/b"], x["AKT"])),
         "HIF_1a": lambda: x.__setitem__("HIF_1a", AND(OR(x["NFKB"], x["mTORC1"]), OR(x["ROS"], x["Hypoxia"]))),
         "Hypoxia": lambda: x.__setitem__("Hypoxia", x["Hypoxia"]),
-        "IFN a/b": lambda: x.__setitem__("IFN a/b", x["IRF3"] - x["Viral_Repl"]),
+        "IFN a/b": lambda: x.__setitem__("IFN a/b", x["IRF3"]),
         "IFNR": lambda: x.__setitem__("IFNR", x["IFN a/b"]),
         "IL1": lambda: x.__setitem__("IL1", OR(x["CASP1"], x["CASP8"], x["NFKB"])),
         "IL1R": lambda: x.__setitem__("IL1R", x["IL1"]),
@@ -96,17 +96,17 @@ def BN(components, n_iter=25, orders=500, n_states=3):
         "IL6R": lambda: x.__setitem__("IL6R", x["IL6"]),
         "IRF3": lambda: x.__setitem__("IRF3", x["RIG1"]),
         "IKKB a/b": lambda: x.__setitem__("IKKB a/b", OR(x["TLR4"], x["IL1R"], x["TNFR"], x["AKT"])),
-        "ISG": lambda: x.__setitem__("ISG", x["STAT1"]),
+        "ISG": lambda: x.__setitem__("ISG", x["STAT1"] - x["Viral_Repl"]),
         "MAPK_p38": lambda: x.__setitem__("MAPK_p38", OR(x["ANG_2_T1R"], x["TLR4"], x["ROS"])),
         # "MLKL": lambda: x.__setitem__("MLKL", x["RIPK1&3"]),
-        "mTORC1": lambda: x.__setitem__("mTORC1", NOT(x["TSC2"])), #OR(x["IKKB a/b"])),
+        "mTORC1": lambda: x.__setitem__("mTORC1", x["AKT"] - x["p53"]), #OR(x["IKKB a/b"])),
         "mTORC2": lambda: x.__setitem__("mTORC2", x["PI3K"] - x["mTORC1"]),        
         # "Necroptosis": lambda: x.__setitem__("Necroptosis", x["MLKL"]),
         "NFKB": lambda: x.__setitem__("NFKB", OR(x["IKKB a/b"], x["ROS"]) - x["FOXO3A"]),
         "NLRP3": lambda: x.__setitem__("NLRP3", AND(x["NFKB"], x["RIG1"])),
         "Nutr_Depr": lambda: x.__setitem__("Nutr_Depr", x["Nutr_Depr"]),
         # "Pyroptosis": lambda: x.__setitem__("Pyroptosis", x["CASP1"]),
-        "p53": lambda: x.__setitem__("p53", OR(x["Hypoxia"], NOT(x["Virus"]), x["Nutr_Depr"])),
+        "p53": lambda: x.__setitem__("p53", OR(x["Hypoxia"], x["Nutr_Depr"]) - x["Virus"]),
         "PI3K": lambda: x.__setitem__("PI3K", OR(x["TLR4"], x["ROS"], x["IL6R"]) - x['PTEN']),
         "PTEN": lambda: x.__setitem__("PTEN", x["p53"]),
         "RIG1": lambda: x.__setitem__("RIG1", x["Viral_Repl"]),
@@ -119,8 +119,8 @@ def BN(components, n_iter=25, orders=500, n_states=3):
         "TLR4": lambda: x.__setitem__("TLR4", x["Virus"]),
         "TNF": lambda: x.__setitem__("TNF", OR(x["ADAM_17"], x["NFKB"], x["MAPK_p38"])),
         "TNFR": lambda: x.__setitem__("TNFR", x["TNF"]),
-        "TSC2": lambda: x.__setitem__("TSC2", (-x["AKT"]) + x["p53"]), # AND(NOT(x["IKKB a/b"]))),
-        "Viral_Repl": lambda: x.__setitem__("Viral_Repl", (OR(x["Virus"] + x["mTORC1"]) - x["ISG"])),
+        # "TSC2": lambda: x.__setitem__("TSC2", (-x["AKT"]) + x["p53"]), # AND(NOT(x["IKKB a/b"]))),
+        "Viral_Repl": lambda: x.__setitem__("Viral_Repl", (OR(x["Virus"], x["mTORC1"]) - x["ISG"])),
         "Virus": lambda: x.__setitem__("Virus", x["Virus"])
     }
 
@@ -172,7 +172,7 @@ def main():
                   "mTORC1", "mTORC2", "NFKB", "NLRP3", "Nutr_Depr", 
                   "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R", 
                   "STAT1", "STAT3", "tBid", "TLR4", "TNF", "TNFR", 
-                  "TSC2", "Viral_Repl", "Virus"]
+                  "Viral_Repl", "Virus"]
     comp_edit = copy.deepcopy(components)
 
     if components is None:
