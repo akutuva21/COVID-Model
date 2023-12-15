@@ -18,65 +18,27 @@ def NOT(value):
 
 class Pneumocyte:
     def __init__(self, x=None):
+        components = ["ACE2", "ADAM_17", "AKT", "ANG_2", "ANG_2_T1R", 
+                      "Apoptosis", "BCL_2", "CASP1", "CASP8", "CASP9", "C_FLIP", 
+                      "CREB_1", "FADD", "FOXO3A", "HIF_1a", "Hypoxia", "IFN_a_b", 
+                      "IFNR", "IL1", "IL1R", "IL6", "IL6R", "IRF3", "IKKB_a_b", 
+                      "ISG", "MAPK_p38", "mTORC1", "mTORC2", "NFKB", "NLRP3", 
+                      "Nutr_Depr", "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R", 
+                      "STAT1", "STAT3", "tBid", "TLR4", "TNF", "TNFR", "Viral_Repl", 
+                      "Virus"]
         if x is None:
-            self.x = {
-                "ACE2": 0,
-                "ADAM_17": 0,
-                "AKT": 0,
-                "ANG_2": 0,
-                "ANG_2_T1R": 0,
-                "Apoptosis": 0,
-                "BCL_2": 0,
-                "CASP1": 0,
-                "CASP8": 0,
-                "CASP9": 0,
-                "C_FLIP": 0,
-                "CREB_1": 0,
-                "FADD": 0,
-                "FOXO3A": 0,
-                "HIF_1a": 0,
-                "Hypoxia": 0,
-                "IFN_a_b": 0,
-                "IFNR": 0,
-                "IL1": 0,
-                "IL1R": 0,
-                "IL6": 0,
-                "IL6R": 0,
-                "IRF3": 0,
-                "IKKB_a_b": 0,
-                "ISG": 0,
-                "MAPK_p38": 0,
-                "mTORC1": 0,
-                "mTORC2": 0,
-                "NFKB": 0,
-                "NLRP3": 0,
-                "Nutr_Depr": 0,
-                "p53": 0,
-                "PI3K": 0,
-                "PTEN": 0,
-                "RIG1": 0,
-                "ROS": 0,
-                "SIL6R": 0,
-                "STAT1": 0,
-                "STAT3": 0,
-                "tBid": 0,
-                "TLR4": 0,
-                "TNF": 0,
-                "TNFR": 0,
-                "Viral_Repl": 0,
-                "Virus": 0
-            }
+            self.x = {component: 0 for component in components}
         else:
             self.x = x
 
     def ACE2(self):
         return self.x["FOXO3A"] - OR(self.x["Virus"], self.x["ADAM_17"])
     def ADAM_17(self):
-        return OR(self.x["ANG_2_T1R"], self.x["HIF_1a"])
+        return max(self.x["ANG_2_T1R"], self.x["HIF_1a"])
     def AKT(self):
         return OR(self.x["mTORC2"], self.x["PI3K"], self.x["FOXO3A"])
     def ANG_2(self):
-        return NOT(self.x["ACE2"])
+        return 0
     def ANG_2_T1R(self):
         return self.x["ANG_2"]
     def Apoptosis(self):
@@ -98,7 +60,8 @@ class Pneumocyte:
     def FOXO3A(self):
         return OR(self.x["STAT3"], self.x["MAPK_p38"], self.x["Nutr_Depr"]) - OR(self.x["IKKB_a_b"], self.x["AKT"])
     def HIF_1a(self):
-        return AND(OR(self.x["NFKB"], self.x["mTORC1"]), OR(self.x["ROS"], self.x["Hypoxia"]))
+        return AND(OR(self.x["NFKB"], self.x["mTORC1"]), 
+                   OR(self.x["ROS"], self.x["Hypoxia"]))
     def Hypoxia(self):
         return self.x["Hypoxia"]
     def IFN_a_b(self):
@@ -116,11 +79,12 @@ class Pneumocyte:
     def IRF3(self):
         return self.x["RIG1"]
     def IKKB_a_b(self):
-        return OR(self.x["TLR4"], self.x["IL1R"], self.x["TNFR"], self.x["AKT"])
+        return OR(self.x["TLR4"], self.x["IL1R"], 
+                  self.x["TNFR"], self.x["AKT"])
     def ISG(self):
         return self.x["STAT1"] - self.x["Viral_Repl"]
     def MAPK_p38(self):
-        return OR(self.x["ANG_2_T1R"], self.x["TLR4"], self.x["ROS"])
+        return max(self.x["ANG_2_T1R"], self.x["TLR4"], self.x["ROS"])
     def mTORC1(self):
         return self.x["AKT"] - self.x["p53"]
     def mTORC2(self):
@@ -134,13 +98,15 @@ class Pneumocyte:
     def p53(self):
         return OR(self.x["Hypoxia"], self.x["Nutr_Depr"]) - self.x["Virus"]
     def PI3K(self):
-        return OR(self.x["TLR4"], self.x["ROS"], self.x["IL6R"]) - self.x['PTEN']
+        return OR(self.x["TLR4"], self.x["ROS"], 
+                  self.x["IL6R"]) - self.x['PTEN']
     def PTEN(self):
         return self.x["p53"]
     def RIG1(self):
         return self.x["Viral_Repl"]
     def ROS(self):
-        return OR(self.x["ANG_2_T1R"], self.x["MAPK_p38"]) - self.x["FOXO3A"]
+        return max(self.x["ANG_2_T1R"], 
+                  self.x["MAPK_p38"]) - self.x["FOXO3A"]
     def SIL6R(self):
         return OR(self.x["ADAM_17"], self.x["IL6"])
     def STAT1(self):
@@ -156,7 +122,7 @@ class Pneumocyte:
     def TNFR(self):
         return self.x["TNF"]
     def Viral_Repl(self):
-        return (OR(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"])
+        return OR(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"]
     def Virus(self):
         return self.x["Virus"]
     
