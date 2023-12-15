@@ -3,11 +3,10 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 import seaborn as sns
-import copy
 
 # Define constants
 N_STATES = 3
-N_ITER = 25
+N_ITER = 15
 ORDERS = 500
 
 def OR(*args):
@@ -18,9 +17,58 @@ def NOT(value):
     return N_STATES - value
 
 class Pneumocyte:
-    def __init__(self, x):
-        self.x = x
-    
+    def __init__(self, x=None):
+        if x is None:
+            self.x = {
+                "ACE2": 0,
+                "ADAM_17": 0,
+                "AKT": 0,
+                "ANG_2": 0,
+                "ANG_2_T1R": 0,
+                "Apoptosis": 0,
+                "BCL_2": 0,
+                "CASP1": 0,
+                "CASP8": 0,
+                "CASP9": 0,
+                "C_FLIP": 0,
+                "CREB_1": 0,
+                "FADD": 0,
+                "FOXO3A": 0,
+                "HIF_1a": 0,
+                "Hypoxia": 0,
+                "IFN_a_b": 0,
+                "IFNR": 0,
+                "IL1": 0,
+                "IL1R": 0,
+                "IL6": 0,
+                "IL6R": 0,
+                "IRF3": 0,
+                "IKKB_a_b": 0,
+                "ISG": 0,
+                "MAPK_p38": 0,
+                "mTORC1": 0,
+                "mTORC2": 0,
+                "NFKB": 0,
+                "NLRP3": 0,
+                "Nutr_Depr": 0,
+                "p53": 0,
+                "PI3K": 0,
+                "PTEN": 0,
+                "RIG1": 0,
+                "ROS": 0,
+                "SIL6R": 0,
+                "STAT1": 0,
+                "STAT3": 0,
+                "tBid": 0,
+                "TLR4": 0,
+                "TNF": 0,
+                "TNFR": 0,
+                "Viral_Repl": 0,
+                "Virus": 0
+            }
+        else:
+            self.x = x
+
     def ACE2(self):
         return self.x["FOXO3A"] - OR(self.x["Virus"], self.x["ADAM_17"])
     def ADAM_17(self):
@@ -113,7 +161,7 @@ class Pneumocyte:
         return self.x["Virus"]
     
     def get_oper(self, component):
-       return lambda: self.x.__setitem__(component, getattr(self, component)())
+        return lambda: self.x.__setitem__(component, getattr(self, component)())
 
     def update_state(self, x, index, update_func, n_states=N_STATES):
         self.x = x
@@ -134,34 +182,17 @@ class Pneumocyte:
         return current_state
 
 def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
-    '''Generates a boolean network based on the provided components
-
-    Parameters
-    ----------
-    components : list
-    n_iter : int, optional
-        Number of iterations to run the network for (default is 25)
-    orders : int, optional
-        Number of samples to take for each iteration (default is 250)
-        Averaged at the end of the function
-    n_states : int
-        Number of states for each component (default is 3)
-    
-    Raises
-    ----------
-        NotImplementedError
-            If the component is not implemented
-            If an 'if' statement was not executed (check names)
-        ValueError
-            If the number of orders or iterations is less than 1
-            If the number of orders or iterations is not an integer
+    '''
+    components: list of components in the model
+    n_iter: number of iterations to run the model
+    orders: number of orders to run the model
+    n_states: number of states for each component
     '''
 
-    cell = Pneumocyte({component: 0 for component in components})
+    cell = Pneumocyte()
     operations = {component: cell.get_oper(component) for component in components}
-    
+    indices = np.arange(len(operations))
     temp_mat = np.zeros((n_iter, len(operations), orders))
-    modified_operations = {}
 
     for order in np.arange(orders):
         cell.x = {component: 0 for component in components}
@@ -173,7 +204,7 @@ def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
         cell.x["Hypoxia"] = 0
 
         for i in np.arange(n_iter):
-            indices = np.random.permutation(len(operations))
+            np.random.shuffle(indices)
             for idx in indices:
                 key = components[idx]
                 if key in operations:
@@ -191,35 +222,11 @@ def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
 
 def main():
     np.random.seed(0)
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+    fig, ax = plt.subplots(1, 1, figsize=(9, 7))
     plt.rcParams['figure.dpi'] = 300
-    n_states = 3
 
-    n_iter = 15
-    orders = 500
-    # consider simplification in the future, add negative feedback loops
-
-    components = ["ACE2", "ADAM_17", "AKT", "ANG_2", "ANG_2_T1R", 
-                  "Apoptosis", "BCL_2", "C_FLIP", "CASP1", "CASP8", 
-                  "CASP9", "CREB_1", "FADD", "FOXO3A", "HIF_1a", 
-                  "Hypoxia", "IFN_a_b", "IFNR", "IKKB_a_b", "IL1", 
-                  "IL1R", "IL6", "IL6R", "IRF3", "ISG", "MAPK_p38", 
-                  "mTORC1", "mTORC2", "NFKB", "NLRP3", "Nutr_Depr", 
-                  "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R", 
-                  "STAT1", "STAT3", "tBid", "TLR4", "TNF", "TNFR", 
-                  "Viral_Repl", "Virus"]
-    comp_edit = copy.deepcopy(components)
-
-    if components is None:
-        raise NotImplementedError("No components provided")
-    if (n_iter < 1) or (orders < 1):
-        raise ValueError("Number of iterations and orders must be positive")
-    if (n_iter % 1 != 0) or (orders % 1 != 0):
-        raise ValueError("Number of iterations and orders must be integers")
-
-    mat = np.average(BN(comp_edit, n_iter, orders, n_states), axis=2)
-
-    yticklabels = [str(x) for x in 1 + np.arange(n_iter)]
+    components = list(Pneumocyte().x.keys())
+    mat = np.average(BN(components, N_ITER, ORDERS, N_STATES), axis=2)
 
     cmap = cm.get_cmap('icefire_r')
 
@@ -229,26 +236,26 @@ def main():
             cmap(np.linspace(minval, maxval, n)))
         return new_cmap
 
-    mat_trunc = mat[0:n_iter]
-    yticklabels_trunc = yticklabels[0:n_iter]
-    ax = sns.heatmap(mat_trunc, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
+    yticklabels = [str(x) for x in 1 + np.arange(N_ITER)]
+    components = [x.replace("_a_b", " α/β").replace("_", " ") for x in components]
+
+    ax = sns.heatmap(mat, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
                      linewidths=.05, xticklabels=components,
-                     yticklabels=yticklabels_trunc, vmin=0, vmax=n_states-1, alpha=1)
+                     yticklabels=yticklabels, vmin=0, vmax=N_STATES-1, alpha=1)
     ax.tick_params(axis='y', which='major', labelsize=10)
 
     colorbar = ax.collections[0].colorbar
-    colorbar.set_ticks(np.arange(0, n_states, 1))
-    colorbar.set_ticklabels([str(int(i)) for i in np.arange(0, n_states, 1)])
+    colorbar.set_ticks(np.arange(0, N_STATES, 1))
+    colorbar.set_ticklabels([str(int(i)) for i in np.arange(0, N_STATES, 1)])
 
     ax.set_xlabel('Model Component', fontsize=12)
     ax.set_ylabel('Iteration Number', fontsize=12)
     ax.set_title(
-        f'Model Component Activation in COVID-19 with {orders} Samples',
+        f'Model Component Activation in COVID-19 with {ORDERS} Samples',
         fontsize=14)
     
     plt.tight_layout()
     fig.savefig('plot.png')
-
 
 if __name__ == '__main__':
     main()
