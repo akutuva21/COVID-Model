@@ -5,7 +5,135 @@ import matplotlib.cm as cm
 import seaborn as sns
 import copy
 
-def BN(components, n_iter=25, orders=500, n_states=3):
+# Define constants
+N_STATES = 3
+N_ITER = 25
+ORDERS = 500
+
+def OR(*args):
+    return np.mean(args)
+def AND(*args):
+    return np.min(args)
+def NOT(value):
+    return N_STATES - value
+
+class Pneumocyte:
+    def __init__(self, x):
+        self.x = x
+    
+    def ACE2(self):
+        return self.x["FOXO3A"] - OR(self.x["Virus"], self.x["ADAM_17"])
+    def ADAM_17(self):
+        return OR(self.x["ANG_2_T1R"], self.x["HIF_1a"])
+    def AKT(self):
+        return OR(self.x["mTORC2"], self.x["PI3K"], self.x["FOXO3A"])
+    def ANG_2(self):
+        return NOT(self.x["ACE2"])
+    def ANG_2_T1R(self):
+        return self.x["ANG_2"]
+    def Apoptosis(self):
+        return OR(self.x["CASP8"], self.x["CASP9"])
+    def BCL_2(self):
+        return OR(self.x["NFKB"], self.x["CREB_1"], self.x["HIF_1a"]) - self.x["p53"]
+    def CASP1(self):
+        return self.x["NLRP3"]
+    def CASP8(self):
+        return OR(self.x["FADD"], self.x["p53"]) - OR(self.x["C_FLIP"], self.x["FOXO3A"])
+    def CASP9(self):
+        return OR(self.x["C_FLIP"], self.x["FOXO3A"]) - self.x["BCL_2"]
+    def C_FLIP(self):
+        return self.x["NFKB"] - self.x["FOXO3A"]
+    def CREB_1(self):
+        return self.x["AKT"]
+    def FADD(self):
+        return self.x["TNFR"]
+    def FOXO3A(self):
+        return OR(self.x["STAT3"], self.x["MAPK_p38"], self.x["Nutr_Depr"]) - OR(self.x["IKKB_a_b"], self.x["AKT"])
+    def HIF_1a(self):
+        return AND(OR(self.x["NFKB"], self.x["mTORC1"]), OR(self.x["ROS"], self.x["Hypoxia"]))
+    def Hypoxia(self):
+        return self.x["Hypoxia"]
+    def IFN_a_b(self):
+        return self.x["IRF3"]
+    def IFNR(self):
+        return self.x["IFN_a_b"]
+    def IL1(self):
+        return OR(self.x["CASP1"], self.x["CASP8"], self.x["NFKB"])
+    def IL1R(self):
+        return self.x["IL1"]
+    def IL6(self):
+        return OR(self.x["NFKB"], self.x["MAPK_p38"])
+    def IL6R(self):
+        return self.x["IL6"]
+    def IRF3(self):
+        return self.x["RIG1"]
+    def IKKB_a_b(self):
+        return OR(self.x["TLR4"], self.x["IL1R"], self.x["TNFR"], self.x["AKT"])
+    def ISG(self):
+        return self.x["STAT1"] - self.x["Viral_Repl"]
+    def MAPK_p38(self):
+        return OR(self.x["ANG_2_T1R"], self.x["TLR4"], self.x["ROS"])
+    def mTORC1(self):
+        return self.x["AKT"] - self.x["p53"]
+    def mTORC2(self):
+        return self.x["PI3K"] - self.x["mTORC1"]
+    def NFKB(self):
+        return OR(self.x["IKKB_a_b"], self.x["ROS"]) - self.x["FOXO3A"]
+    def NLRP3(self):
+        return AND(self.x["NFKB"], self.x["RIG1"])
+    def Nutr_Depr(self):
+        return self.x["Nutr_Depr"]
+    def p53(self):
+        return OR(self.x["Hypoxia"], self.x["Nutr_Depr"]) - self.x["Virus"]
+    def PI3K(self):
+        return OR(self.x["TLR4"], self.x["ROS"], self.x["IL6R"]) - self.x['PTEN']
+    def PTEN(self):
+        return self.x["p53"]
+    def RIG1(self):
+        return self.x["Viral_Repl"]
+    def ROS(self):
+        return OR(self.x["ANG_2_T1R"], self.x["MAPK_p38"]) - self.x["FOXO3A"]
+    def SIL6R(self):
+        return OR(self.x["ADAM_17"], self.x["IL6"])
+    def STAT1(self):
+        return self.x["IFNR"]
+    def STAT3(self):
+        return self.x["IL6R"]
+    def tBid(self):
+        return OR(self.x["CASP8"], self.x["ROS"])
+    def TLR4(self):
+        return self.x["Virus"]
+    def TNF(self):
+        return OR(self.x["ADAM_17"], self.x["NFKB"], self.x["MAPK_p38"])
+    def TNFR(self):
+        return self.x["TNF"]
+    def Viral_Repl(self):
+        return (OR(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"])
+    def Virus(self):
+        return self.x["Virus"]
+    
+    def get_oper(self, component):
+       return lambda: self.x.__setitem__(component, getattr(self, component)())
+
+    def update_state(self, x, index, update_func, n_states=N_STATES):
+        self.x = x
+        current_state = self.x[index]
+        update_func()
+        new_state = self.x[index]
+
+        if new_state > current_state:
+            current_state += 1
+        elif new_state < current_state:
+            current_state -= 1
+
+        if current_state < 0:
+            current_state = 0
+        elif current_state > (n_states - 1):
+            current_state = n_states - 1
+
+        return current_state
+
+def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
     '''Generates a boolean network based on the provided components
 
     Parameters
@@ -29,125 +157,32 @@ def BN(components, n_iter=25, orders=500, n_states=3):
             If the number of orders or iterations is not an integer
     '''
 
-    # Generalized AND function for non-boolean states
-    def AND(*args):
-        # check that all args are positive
-        for arg in args:
-            if arg < 0:
-                assert False, "AND function requires all arguments are positive"
-        return min(args)
-
-    # Generalized OR function for non-boolean states
-    def OR(*args):
-        # check that all args are positive
-        for arg in args:
-            if arg < 0:
-                assert False, "AND function requires all arguments are positive"
-        return sum(args) / len(args)
+    cell = Pneumocyte({component: 0 for component in components})
+    operations = {component: cell.get_oper(component) for component in components}
     
-    # Generalized NOT function for non-boolean states
-    def NOT(value, n=n_states-1):
-        return n - value
-    
-    def g(x, index, update_func, n_states=n_states):
-        current_state = x[index]
-        update_func()
-        new_state = x[index]
-
-        if new_state > current_state:
-            current_state += 1
-        elif new_state < current_state:
-            current_state -= 1
-
-        if current_state < 0:
-            current_state = 0
-        elif current_state > (n_states - 1):
-            current_state = n_states - 1
-
-        return current_state
-
-    operations = {
-        "ACE2": lambda: x.__setitem__("ACE2", x["FOXO3A"] - OR(x["Virus"], x["ADAM_17"])), # added adam-17
-        "ADAM_17": lambda: x.__setitem__("ADAM_17", OR(x["ANG_2_T1R"], x["HIF_1a"])), # added hif-1a
-        "AKT": lambda: x.__setitem__("AKT", OR(x["mTORC2"], x["PI3K"], x["FOXO3A"])),
-        # "AMPK": lambda: x.__setitem__("AMPK", ),
-        "ANG_2": lambda: x.__setitem__("ANG_2", NOT(x["ACE2"])),
-        "ANG_2_T1R": lambda: x.__setitem__("ANG_2_T1R", x["ANG_2"]),
-        "Apoptosis": lambda: x.__setitem__("Apoptosis", OR(x["CASP8"], x["CASP9"])),
-        # "Autophagy": lambda: x.__setitem__("Autophagy", NOT(x["mTORC1"])),
-        "BCL_2": lambda: x.__setitem__("BCL_2", OR(x["NFKB"], x["CREB_1"], x["HIF_1a"]) - x["p53"]),
-        # "Bax_Bak": lambda: x.__setitem__("Bax_Bak", NOT(x["BCL_2"])),
-        "CASP1": lambda: x.__setitem__("CASP1", x["NLRP3"]),
-        "CASP8": lambda: x.__setitem__("CASP8", OR(x["FADD"], x["p53"]) - OR(x["C_FLIP"], x["FOXO3A"])),
-        # OR(AND(AND(x["FADD"], NOT(x["C_FLIP"])), NOT(x["FOXO3A"])), x["p53"])),
-        # OR(x["FADD"], x["p53"]) - OR(x["C_FLIP"], x["FOXO3A"]),
-        "CASP9": lambda: x.__setitem__("CASP9", x["tBid"]), #OR(x["Bax_Bak"], x["tBid"]))),
-        "C_FLIP": lambda: x.__setitem__("C_FLIP", x["NFKB"] - x["FOXO3A"]),
-        "CREB_1": lambda: x.__setitem__("CREB_1", x["AKT"]),
-        "FADD": lambda: x.__setitem__("FADD", x["TNFR"]),
-        "FOXO3A": lambda: x.__setitem__("FOXO3A", OR(x["STAT3"], x["MAPK_p38"], x["Nutr_Depr"]) - OR(x["IKKB a/b"], x["AKT"])),
-        "HIF_1a": lambda: x.__setitem__("HIF_1a", AND(OR(x["NFKB"], x["mTORC1"]), OR(x["ROS"], x["Hypoxia"]))),
-        "Hypoxia": lambda: x.__setitem__("Hypoxia", x["Hypoxia"]),
-        "IFN a/b": lambda: x.__setitem__("IFN a/b", x["IRF3"]),
-        "IFNR": lambda: x.__setitem__("IFNR", x["IFN a/b"]),
-        "IL1": lambda: x.__setitem__("IL1", OR(x["CASP1"], x["CASP8"], x["NFKB"])),
-        "IL1R": lambda: x.__setitem__("IL1R", x["IL1"]),
-        "IL6": lambda: x.__setitem__("IL6", OR(x["NFKB"], x["MAPK_p38"])),
-        "IL6R": lambda: x.__setitem__("IL6R", x["IL6"]),
-        "IRF3": lambda: x.__setitem__("IRF3", x["RIG1"]),
-        "IKKB a/b": lambda: x.__setitem__("IKKB a/b", OR(x["TLR4"], x["IL1R"], x["TNFR"], x["AKT"])),
-        "ISG": lambda: x.__setitem__("ISG", x["STAT1"] - x["Viral_Repl"]),
-        "MAPK_p38": lambda: x.__setitem__("MAPK_p38", OR(x["ANG_2_T1R"], x["TLR4"], x["ROS"])),
-        # "MLKL": lambda: x.__setitem__("MLKL", x["RIPK1&3"]),
-        "mTORC1": lambda: x.__setitem__("mTORC1", x["AKT"] - x["p53"]), #OR(x["IKKB a/b"])),
-        "mTORC2": lambda: x.__setitem__("mTORC2", x["PI3K"] - x["mTORC1"]),        
-        # "Necroptosis": lambda: x.__setitem__("Necroptosis", x["MLKL"]),
-        "NFKB": lambda: x.__setitem__("NFKB", OR(x["IKKB a/b"], x["ROS"]) - x["FOXO3A"]),
-        "NLRP3": lambda: x.__setitem__("NLRP3", AND(x["NFKB"], x["RIG1"])),
-        "Nutr_Depr": lambda: x.__setitem__("Nutr_Depr", x["Nutr_Depr"]),
-        # "Pyroptosis": lambda: x.__setitem__("Pyroptosis", x["CASP1"]),
-        "p53": lambda: x.__setitem__("p53", OR(x["Hypoxia"], x["Nutr_Depr"]) - x["Virus"]),
-        "PI3K": lambda: x.__setitem__("PI3K", OR(x["TLR4"], x["ROS"], x["IL6R"]) - x['PTEN']),
-        "PTEN": lambda: x.__setitem__("PTEN", x["p53"]),
-        "RIG1": lambda: x.__setitem__("RIG1", x["Viral_Repl"]),
-        # "RIPK1&3": lambda: x.__setitem__("RIPK1&3", OR(x["RIG1"], x["TLR4"], x["FADD"])),
-        "ROS": lambda: x.__setitem__("ROS", OR(x["ANG_2_T1R"], x["MAPK_p38"]) - x["FOXO3A"]),
-        "SIL6R": lambda: x.__setitem__("SIL6R", OR(x["ADAM_17"], x["IL6"])),
-        "STAT1": lambda: x.__setitem__("STAT1", x["IFNR"]), #x["IFNR"]
-        "STAT3": lambda: x.__setitem__("STAT3", x["IL6R"]),
-        "tBid": lambda: x.__setitem__("tBid", OR(x["CASP8"], x["ROS"])),
-        "TLR4": lambda: x.__setitem__("TLR4", x["Virus"]),
-        "TNF": lambda: x.__setitem__("TNF", OR(x["ADAM_17"], x["NFKB"], x["MAPK_p38"])),
-        "TNFR": lambda: x.__setitem__("TNFR", x["TNF"]),
-        # "TSC2": lambda: x.__setitem__("TSC2", (-x["AKT"]) + x["p53"]), # AND(NOT(x["IKKB a/b"]))),
-        "Viral_Repl": lambda: x.__setitem__("Viral_Repl", (OR(x["Virus"], x["mTORC1"]) - x["ISG"])),
-        "Virus": lambda: x.__setitem__("Virus", x["Virus"])
-    }
-
     temp_mat = np.zeros((n_iter, len(operations), orders))
     modified_operations = {}
 
     for order in np.arange(orders):
-        x = {component: 0 for component in components}
-        x["Virus"] = n_states - 1
-        x["IFN a/b"] = n_states - 1
-        x["ACE2"] = n_states - 1
-        x["TSC2"] = n_states - 1
-        x["Nutr_Depr"] = 0 # n_states - 1
-        x["Hypoxia"] = 0
+        cell.x = {component: 0 for component in components}
+        cell.x["Virus"] = n_states - 1
+        cell.x["IFN_a_b"] = n_states - 1
+        cell.x["ACE2"] = n_states - 1
+        cell.x["TSC2"] = n_states - 1
+        cell.x["Nutr_Depr"] = 0 # n_states - 1
+        cell.x["Hypoxia"] = 0
 
         for i in np.arange(n_iter):
-            indices = np.random.permutation(len(components))
+            indices = np.random.permutation(len(operations))
             for idx in indices:
                 key = components[idx]
                 if key in operations:
                     component, operation_lambda = key, operations[key]
-                    modified_operations[key] = lambda x, component=component, operation_lambda=operation_lambda: x.__setitem__(component, g(x, component, operation_lambda, n_states))
-                    modified_operations[key](x)
+                    cell.x[component] = cell.update_state(cell.x, component, operation_lambda, n_states)
                 else:
                     raise NotImplementedError(f"Operation for '{key}' not defined in 'operations'")
             indices = np.sort(indices)
-            temp_mat[i, :, order] = [x[components[a]] for a in indices]
+            temp_mat[i, :, order] = [cell.x[components[a]] for a in indices]
 
     # print components in alphabetical order in the form of [a, b, c, ...]
     # print("[" + ", ".join([f"\"{x}\"" for x in sorted(components, key=lambda x: x.lower())]) + "]")
@@ -167,7 +202,7 @@ def main():
     components = ["ACE2", "ADAM_17", "AKT", "ANG_2", "ANG_2_T1R", 
                   "Apoptosis", "BCL_2", "C_FLIP", "CASP1", "CASP8", 
                   "CASP9", "CREB_1", "FADD", "FOXO3A", "HIF_1a", 
-                  "Hypoxia", "IFN a/b", "IFNR", "IKKB a/b", "IL1", 
+                  "Hypoxia", "IFN_a_b", "IFNR", "IKKB_a_b", "IL1", 
                   "IL1R", "IL6", "IL6R", "IRF3", "ISG", "MAPK_p38", 
                   "mTORC1", "mTORC2", "NFKB", "NLRP3", "Nutr_Depr", 
                   "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R", 
@@ -194,12 +229,10 @@ def main():
             cmap(np.linspace(minval, maxval, n)))
         return new_cmap
 
-    edited_comp = [x.replace("_", " ").replace("a/b", "α/β")
-                   for x in components]
     mat_trunc = mat[0:n_iter]
     yticklabels_trunc = yticklabels[0:n_iter]
     ax = sns.heatmap(mat_trunc, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
-                     linewidths=.05, xticklabels=edited_comp,
+                     linewidths=.05, xticklabels=components,
                      yticklabels=yticklabels_trunc, vmin=0, vmax=n_states-1, alpha=1)
     ax.tick_params(axis='y', which='major', labelsize=10)
 
@@ -213,8 +246,6 @@ def main():
         f'Model Component Activation in COVID-19 with {orders} Samples',
         fontsize=14)
     
-    # zip(components, mat_trunc))
-
     plt.tight_layout()
     fig.savefig('plot.png')
 
