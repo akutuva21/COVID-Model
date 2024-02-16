@@ -1,0 +1,6 @@
+Variables:
+Virus:, x[i] = x["Virus"]
+Viral_Repl:, x[i] = (x["Virus"]) and not x["ISG"] # probably could add mtorc2
+ANG_2_T1R:, x[i] = x["ANG_2"]
+
+Interactions:
