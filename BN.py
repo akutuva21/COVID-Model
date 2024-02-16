@@ -9,11 +9,8 @@ N_STATES = 3
 N_ITER = 15
 ORDERS = 500
 
-def AVG(*args):
-    return np.max(args)
-    # return np.mean(args)
 def OR(*args):
-    return np.max(args)
+    return np.mean(args)
 def AND(*args):
     return np.min(args)
 def NOT(value):
@@ -21,50 +18,87 @@ def NOT(value):
 
 class Pneumocyte:
     def __init__(self, x=None):
-        components = ["ACE2", "ADAM_17", "AKT", "ANG_2", "ANG_2_T1R", 
-                      "Apoptosis", "BCL_2", "CASP1", "CASP8", "CASP9", "C_FLIP", 
-                      "CREB_1", "FADD", "FOXO3A", "HIF_1a", "Hypoxia", "IFN_a_b", 
-                      "IFNR", "IL1", "IL1R", "IL6", "IL6R", "IRF3", "IKKB_a_b", 
-                      "ISG", "MAPK_p38", "mTORC1", "mTORC2", "NFKB", "NLRP3", 
-                      "Nutr_Depr", "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R", 
-                      "STAT1", "STAT3", "tBid", "TLR4", "TNF", "TNFR", "Viral_Repl", 
-                      "Virus"]
         if x is None:
-            self.x = {component: 0 for component in components}
+            self.x = {
+                "ACE2": 0,
+                "ADAM_17": 0,
+                "AKT": 0,
+                "ANG_2": 0,
+                "ANG_2_T1R": 0,
+                "Apoptosis": 0,
+                "BCL_2": 0,
+                "CASP1": 0,
+                "CASP8": 0,
+                "CASP9": 0,
+                "C_FLIP": 0,
+                "CREB_1": 0,
+                "FADD": 0,
+                "FOXO3A": 0,
+                "HIF_1a": 0,
+                "Hypoxia": 0,
+                "IFN_a_b": 0,
+                "IFNR": 0,
+                "IL1": 0,
+                "IL1R": 0,
+                "IL6": 0,
+                "IL6R": 0,
+                "IRF3": 0,
+                "IKKB_a_b": 0,
+                "ISG": 0,
+                "MAPK_p38": 0,
+                "mTORC1": 0,
+                "mTORC2": 0,
+                "NFKB": 0,
+                "NLRP3": 0,
+                "Nutr_Depr": 0,
+                "p53": 0,
+                "PI3K": 0,
+                "PTEN": 0,
+                "RIG1": 0,
+                "ROS": 0,
+                "SIL6R": 0,
+                "STAT1": 0,
+                "STAT3": 0,
+                "tBid": 0,
+                "TLR4": 0,
+                "TNF": 0,
+                "TNFR": 0,
+                "Viral_Repl": 0,
+                "Virus": 0
+            }
         else:
             self.x = x
 
     def ACE2(self):
-        return AND(self.x["FOXO3A"], NOT(AVG(self.x["Virus"], self.x["ADAM_17"])))
+        return self.x["FOXO3A"] - OR(self.x["Virus"], self.x["ADAM_17"])
     def ADAM_17(self):
         return OR(self.x["ANG_2_T1R"], self.x["HIF_1a"])
     def AKT(self):
-        return AVG(self.x["mTORC2"], self.x["PI3K"], self.x["FOXO3A"])
+        return OR(self.x["mTORC2"], self.x["PI3K"], self.x["FOXO3A"])
     def ANG_2(self):
-        return 0 # not expressed in-vitro
+        return NOT(self.x["ACE2"])
     def ANG_2_T1R(self):
         return self.x["ANG_2"]
     def Apoptosis(self):
-        return AVG(self.x["CASP8"], self.x["CASP9"])
+        return OR(self.x["CASP8"], self.x["CASP9"])
     def BCL_2(self):
-        return AND(AVG(self.x["NFKB"], self.x["CREB_1"], self.x["HIF_1a"]), NOT(self.x["p53"]))
+        return OR(self.x["NFKB"], self.x["CREB_1"], self.x["HIF_1a"]) - self.x["p53"]
     def CASP1(self):
         return self.x["NLRP3"]
     def CASP8(self):
-        return AND(AVG(self.x["FADD"], self.x["p53"]), NOT(AVG(self.x["C_FLIP"], self.x["FOXO3A"])))
+        return OR(self.x["FADD"], self.x["p53"]) - OR(self.x["C_FLIP"], self.x["FOXO3A"])
     def CASP9(self):
-        return AND(AVG(self.x["C_FLIP"], self.x["FOXO3A"]), NOT(self.x["BCL_2"]))
+        return OR(self.x["C_FLIP"], self.x["FOXO3A"]) - self.x["BCL_2"]
     def C_FLIP(self):
-        return AND(self.x["NFKB"], NOT(self.x["FOXO3A"]))
+        return self.x["NFKB"] - self.x["FOXO3A"]
     def CREB_1(self):
         return self.x["AKT"]
     def FADD(self):
         return self.x["TNFR"]
     def FOXO3A(self):
-        return AND(AVG(self.x["STAT3"], self.x["MAPK_p38"], self.x["Nutr_Depr"]), NOT(AVG(self.x["IKKB_a_b"], self.x["AKT"])))
+        return OR(self.x["STAT3"], self.x["MAPK_p38"], self.x["Nutr_Depr"]) - OR(self.x["IKKB_a_b"], self.x["AKT"])
     def HIF_1a(self):
-        return AND(AVG(self.x["NFKB"], self.x["mTORC1"]), 
-                   AVG(self.x["ROS"], self.x["Hypoxia"]))
+        return AND(OR(self.x["NFKB"], self.x["mTORC1"]), OR(self.x["ROS"], self.x["Hypoxia"]))
     def Hypoxia(self):
         return self.x["Hypoxia"]
     def IFN_a_b(self):
@@ -72,60 +106,57 @@ class Pneumocyte:
     def IFNR(self):
         return self.x["IFN_a_b"]
     def IL1(self):
-        return AVG(self.x["CASP1"], self.x["CASP8"], self.x["NFKB"])
+        return OR(self.x["CASP1"], self.x["CASP8"], self.x["NFKB"])
     def IL1R(self):
         return self.x["IL1"]
     def IL6(self):
-        return AVG(self.x["NFKB"], self.x["MAPK_p38"])
+        return OR(self.x["NFKB"], self.x["MAPK_p38"])
     def IL6R(self):
         return self.x["IL6"]
     def IRF3(self):
         return self.x["RIG1"]
     def IKKB_a_b(self):
-        return AVG(self.x["TLR4"], self.x["IL1R"], 
-                  self.x["TNFR"], self.x["AKT"])
+        return OR(self.x["TLR4"], self.x["IL1R"], self.x["TNFR"], self.x["AKT"])
     def ISG(self):
-        return AND(self.x["STAT1"], NOT(self.x["Viral_Repl"]))
+        return self.x["STAT1"] - self.x["Viral_Repl"]
     def MAPK_p38(self):
         return OR(self.x["ANG_2_T1R"], self.x["TLR4"], self.x["ROS"])
     def mTORC1(self):
-        return AND(self.x["AKT"], NOT(self.x["p53"]))
+        return self.x["AKT"] - self.x["p53"]
     def mTORC2(self):
-        return AND(self.x["PI3K"], NOT(self.x["mTORC1"]))
+        return self.x["PI3K"] - self.x["mTORC1"]
     def NFKB(self):
-        return AND(AVG(self.x["IKKB_a_b"], self.x["ROS"]), NOT(self.x["FOXO3A"]))
+        return OR(self.x["IKKB_a_b"], self.x["ROS"]) - self.x["FOXO3A"]
     def NLRP3(self):
         return AND(self.x["NFKB"], self.x["RIG1"])
     def Nutr_Depr(self):
         return self.x["Nutr_Depr"]
     def p53(self):
-        return AND(AVG(self.x["Hypoxia"], self.x["Nutr_Depr"]), NOT(self.x["Virus"]))
+        return OR(self.x["Hypoxia"], self.x["Nutr_Depr"]) - self.x["Virus"]
     def PI3K(self):
-        return AND(AVG(self.x["TLR4"], self.x["ROS"], 
-                  self.x["IL6R"]), NOT(self.x['PTEN']))
+        return OR(self.x["TLR4"], self.x["ROS"], self.x["IL6R"]) - self.x['PTEN']
     def PTEN(self):
         return self.x["p53"]
     def RIG1(self):
         return self.x["Viral_Repl"]
     def ROS(self):
-        return AND(OR(self.x["ANG_2_T1R"], 
-                  self.x["MAPK_p38"]), NOT(self.x["FOXO3A"]))
+        return OR(self.x["ANG_2_T1R"], self.x["MAPK_p38"]) - self.x["FOXO3A"]
     def SIL6R(self):
-        return AVG(self.x["ADAM_17"], self.x["IL6"])
+        return OR(self.x["ADAM_17"], self.x["IL6"])
     def STAT1(self):
         return self.x["IFNR"]
     def STAT3(self):
         return self.x["IL6R"]
     def tBid(self):
-        return AVG(self.x["CASP8"], self.x["ROS"])
+        return OR(self.x["CASP8"], self.x["ROS"])
     def TLR4(self):
         return self.x["Virus"]
     def TNF(self):
-        return AVG(self.x["ADAM_17"], self.x["NFKB"], self.x["MAPK_p38"])
+        return OR(self.x["ADAM_17"], self.x["NFKB"], self.x["MAPK_p38"])
     def TNFR(self):
         return self.x["TNF"]
     def Viral_Repl(self):
-        return AND(AVG(self.x["Virus"], self.x["mTORC1"]), NOT(self.x["ISG"]))
+        return (OR(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"])
     def Virus(self):
         return self.x["Virus"]
     
@@ -133,7 +164,7 @@ class Pneumocyte:
         return lambda: self.x.__setitem__(component, getattr(self, component)())
 
     def update_state(self, x, index, update_func, n_states=N_STATES):
-        """ self.x = x
+        self.x = x
         current_state = self.x[index]
         update_func()
         new_state = self.x[index]
@@ -148,9 +179,7 @@ class Pneumocyte:
         elif current_state > (n_states - 1):
             current_state = n_states - 1
 
-        return current_state"""
-        update_func()
-        return self.x[index]
+        return current_state
 
 def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
     '''
