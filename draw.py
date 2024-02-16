@@ -31,7 +31,7 @@ with open(filename, 'r') as fp:
     lines = fp.readlines()
 all_components = [line.split(',')[0] for line in lines]
 
-exclude = ["Virus", "ACE2"]
+exclude = ["Virus", "ACE2", "IFN_a_b", "TSC2"]
 initial = "".join([str(0) if x not in exclude else str(1)
                   for x in all_components])
 print(initial)
