@@ -10,14 +10,13 @@ N_ITER = 15
 ORDERS = 500
 
 def AVG(*args):
-    return np.max(args)
-    # return np.mean(args)
+    return np.mean(args)
 def OR(*args):
     return np.max(args)
 def AND(*args):
     return np.min(args)
 def NOT(value):
-    return N_STATES - value
+    return (N_STATES - 1) - value
 
 class Pneumocyte:
     def __init__(self, x=None):
@@ -224,7 +223,12 @@ def main():
         fontsize=14)
     
     plt.tight_layout()
-    fig.savefig('plot.png')
+    fig.savefig('QN_plot.png')
+
+    # print each value of components and the corresponding value in the last row of the matrix
+    for i in range(len(components)):
+        print(components[i], mat[-1, i])
+
 
 if __name__ == '__main__':
     main()
