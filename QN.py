@@ -12,7 +12,7 @@ ORDERS = 500
 def AVG(*args):
     return np.mean(args)
 def OR(*args):
-    return np.max(args)
+    return np.mean(args) # np.max(args)
 def AND(*args):
     return np.min(args)
 def NOT(value):
@@ -46,13 +46,13 @@ class Pneumocyte:
     def Apoptosis(self):
         return AVG(self.x["CASP8"], self.x["CASP9"])
     def BCL_2(self):
-        return AVG(self.x["NFKB"], self.x["CREB_1"], self.x["HIF_1a"]) - self.x["p53"]
+        return AVG(self.x["NFKB"], self.x["CREB_1"]) - self.x["p53"]
     def CASP1(self):
         return self.x["NLRP3"]
     def CASP8(self):
         return AVG(self.x["FADD"], self.x["p53"]) - AVG(self.x["C_FLIP"], self.x["FOXO3A"])
     def CASP9(self):
-        return AVG(self.x["C_FLIP"], self.x["FOXO3A"]) - self.x["BCL_2"]
+        return self.x["FOXO3A"] - self.x["BCL_2"]
     def C_FLIP(self):
         return self.x["NFKB"] - self.x["FOXO3A"]
     def CREB_1(self):
@@ -60,7 +60,7 @@ class Pneumocyte:
     def FADD(self):
         return self.x["TNFR"]
     def FOXO3A(self):
-        return AVG(self.x["STAT3"], self.x["MAPK_p38"], self.x["Nutr_Depr"]) - AVG(self.x["IKKB_a_b"], self.x["AKT"])
+        return AVG(self.x["STAT3"], self.x["MAPK_p38"], self.x["mTORC1"]) - AVG(self.x["IKKB_a_b"], self.x["AKT"])
     def HIF_1a(self):
         return AND(AVG(self.x["NFKB"], self.x["mTORC1"]), 
                    AVG(self.x["ROS"], self.x["Hypoxia"]))
@@ -90,7 +90,7 @@ class Pneumocyte:
     def mTORC1(self):
         return self.x["AKT"] - self.x["p53"]
     def mTORC2(self):
-        return self.x["PI3K"] - self.x["mTORC1"]
+        return self.x["PI3K"]
     def NFKB(self):
         return AVG(self.x["IKKB_a_b"], self.x["ROS"]) - self.x["FOXO3A"]
     def NLRP3(self):
@@ -110,13 +110,13 @@ class Pneumocyte:
         return OR(self.x["ANG_2_T1R"], 
                   self.x["MAPK_p38"]) - self.x["FOXO3A"]
     def SIL6R(self):
-        return AVG(self.x["ADAM_17"], self.x["IL6"])
+        return AND(self.x["ADAM_17"], self.x["IL6"])
     def STAT1(self):
         return self.x["IFNR"]
     def STAT3(self):
         return self.x["IL6R"]
     def tBid(self):
-        return AVG(self.x["CASP8"], self.x["ROS"])
+        return self.x["CASP8"]
     def TLR4(self):
         return self.x["Virus"]
     def TNF(self):
@@ -223,7 +223,7 @@ def main():
         fontsize=14)
     
     plt.tight_layout()
-    fig.savefig('QN_plot.png')
+    fig.savefig('QN_plot_new.png')
 
     # print each value of components and the corresponding value in the last row of the matrix
     for i in range(len(components)):

@@ -44,13 +44,13 @@ class Pneumocyte:
     def Apoptosis(self):
         return OR(self.x["CASP8"], self.x["CASP9"])
     def BCL_2(self):
-        return AND(OR(self.x["NFKB"], self.x["CREB_1"], self.x["HIF_1a"]), NOT(self.x["p53"]))
+        return AND(OR(self.x["NFKB"], self.x["CREB_1"]), NOT(self.x["p53"]))
     def CASP1(self):
         return self.x["NLRP3"]
     def CASP8(self):
         return AND(OR(self.x["FADD"], self.x["p53"]), NOT(OR(self.x["C_FLIP"], self.x["FOXO3A"])))
     def CASP9(self):
-        return AND(OR(self.x["C_FLIP"], self.x["FOXO3A"]), NOT(self.x["BCL_2"]))
+        return AND(self.x["FOXO3A"], NOT(self.x["BCL_2"]))
     def C_FLIP(self):
         return AND(self.x["NFKB"], NOT(self.x["FOXO3A"]))
     def CREB_1(self):
@@ -58,7 +58,7 @@ class Pneumocyte:
     def FADD(self):
         return self.x["TNFR"]
     def FOXO3A(self):
-        return AND(OR(self.x["STAT3"], self.x["MAPK_p38"], self.x["Nutr_Depr"]), 
+        return AND(OR(self.x["STAT3"], self.x["MAPK_p38"], self.x["mTORC1"]), 
                    NOT(OR(self.x["IKKB_a_b"], self.x["AKT"])))
     def HIF_1a(self):
         return AND(OR(self.x["NFKB"], self.x["mTORC1"]), 
@@ -89,7 +89,7 @@ class Pneumocyte:
     def mTORC1(self):
         return AND(self.x["AKT"], NOT(self.x["p53"]))
     def mTORC2(self):
-        return AND(self.x["PI3K"], NOT(self.x["mTORC1"]))
+        return self.x["PI3K"]
     def NFKB(self):
         return AND(OR(self.x["IKKB_a_b"], self.x["ROS"]), NOT(self.x["FOXO3A"]))
     def NLRP3(self):
@@ -109,13 +109,13 @@ class Pneumocyte:
         return AND(OR(self.x["ANG_2_T1R"], 
                   self.x["MAPK_p38"]), NOT(self.x["FOXO3A"]))
     def SIL6R(self):
-        return OR(self.x["ADAM_17"], self.x["IL6"])
+        return AND(self.x["ADAM_17"], self.x["IL6"])
     def STAT1(self):
         return self.x["IFNR"]
     def STAT3(self):
         return self.x["IL6R"]
     def tBid(self):
-        return OR(self.x["CASP8"], self.x["ROS"])
+        return self.x["CASP8"]
     def TLR4(self):
         return self.x["Virus"]
     def TNF(self):
@@ -224,7 +224,7 @@ def main():
         fontsize=14)
     
     plt.tight_layout()
-    fig.savefig('GBN_plot.png')
+    fig.savefig('GBN_plot_new.png')
 
     # print each value of components and the corresponding value in the last row of the matrix
     for i in range(len(components)):
