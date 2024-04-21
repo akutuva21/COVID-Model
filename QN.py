@@ -20,14 +20,14 @@ def NOT(value):
 
 class Pneumocyte:
     def __init__(self, x=None):
-        components = ["ACE2", "ADAM_17", "AKT", "ANG_2", "ANG_2_T1R", 
+        components = ["ACE2", "ADAM_17", "AKT", "AMPK", "ANG_2", "ANG_2_T1R", 
                       "Apoptosis", "BCL_2", "CASP1", "CASP8", "CASP9", "C_FLIP", 
                       "CREB_1", "FADD", "FOXO3A", "HIF_1a", "Hypoxia", "IFN_a_b", 
                       "IFNR", "IL1", "IL1R", "IL6", "IL6R", "IRF3", "IKKB_a_b", 
                       "ISG", "MAPK_p38", "mTORC1", "mTORC2", "NFKB", "NLRP3", 
                       "Nutr_Depr", "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R", 
-                      "STAT1", "STAT3", "tBid", "TLR4", "TNF", "TNFR", "Viral_Repl", 
-                      "Virus"]
+                      "STAT1", "STAT3", "tBid", "TLR4", "TNF", "TNFR", "TSC2",
+                      "Viral_Repl", "Virus"]
         if x is None:
             self.x = {component: 0 for component in components}
         else:
@@ -38,7 +38,9 @@ class Pneumocyte:
     def ADAM_17(self):
         return OR(self.x["ANG_2_T1R"], self.x["HIF_1a"])
     def AKT(self):
-        return AVG(self.x["mTORC2"], self.x["PI3K"], self.x["FOXO3A"])
+        return AVG(self.x["mTORC2"], self.x["FOXO3A"], self.x["PI3K"] - self.x["PTEN"])
+    def AMPK(self):
+        return self.x["Nutr_Depr"] - self.x["AKT"]
     def ANG_2(self):
         return 0 # not expressed in-vitro
     def ANG_2_T1R(self):
@@ -60,7 +62,7 @@ class Pneumocyte:
     def FADD(self):
         return self.x["TNFR"]
     def FOXO3A(self):
-        return AVG(self.x["STAT3"], self.x["MAPK_p38"], self.x["mTORC1"]) - AVG(self.x["IKKB_a_b"], self.x["AKT"])
+        return AVG(self.x["STAT3"], self.x["MAPK_p38"], self.x["AMPK"]) - AVG(self.x["IKKB_a_b"], self.x["AKT"])
     def HIF_1a(self):
         return AND(AVG(self.x["NFKB"], self.x["mTORC1"]), 
                    AVG(self.x["ROS"], self.x["Hypoxia"]))
@@ -88,9 +90,9 @@ class Pneumocyte:
     def MAPK_p38(self):
         return OR(self.x["ANG_2_T1R"], self.x["TLR4"], self.x["ROS"])
     def mTORC1(self):
-        return self.x["AKT"] - self.x["p53"]
+        return AND(NOT(self.x["TSC2"]), NOT(self.x["FOXO3A"]))
     def mTORC2(self):
-        return self.x["PI3K"]
+        return AVG(self.x["PI3K"], self.x["AMPK"])
     def NFKB(self):
         return AVG(self.x["IKKB_a_b"], self.x["ROS"]) - self.x["FOXO3A"]
     def NLRP3(self):
@@ -98,10 +100,10 @@ class Pneumocyte:
     def Nutr_Depr(self):
         return self.x["Nutr_Depr"]
     def p53(self):
-        return AVG(self.x["Hypoxia"], self.x["Nutr_Depr"]) - self.x["Virus"]
+        return AVG(self.x["Hypoxia"], self.x["AMPK"]) - self.x["Virus"]
     def PI3K(self):
         return AVG(self.x["TLR4"], self.x["ROS"], 
-                  self.x["IL6R"]) - self.x['PTEN']
+                  self.x["IL6R"])
     def PTEN(self):
         return self.x["p53"]
     def RIG1(self):
@@ -110,7 +112,7 @@ class Pneumocyte:
         return OR(self.x["ANG_2_T1R"], 
                   self.x["MAPK_p38"]) - self.x["FOXO3A"]
     def SIL6R(self):
-        return AND(self.x["ADAM_17"], self.x["IL6"])
+        return AND(self.x["ADAM_17"], self.x["IL6R"])
     def STAT1(self):
         return self.x["IFNR"]
     def STAT3(self):
@@ -123,8 +125,10 @@ class Pneumocyte:
         return AVG(self.x["ADAM_17"], self.x["NFKB"], self.x["MAPK_p38"])
     def TNFR(self):
         return self.x["TNF"]
+    def TSC2(self):
+        return AVG(self.x["p53"], self.x["AMPK"], self.x["HIF_1a"]) - self.x["AKT"]
     def Viral_Repl(self):
-        return AVG(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"]
+        return AND(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"]
     def Virus(self):
         return self.x["Virus"]
     
@@ -167,7 +171,6 @@ def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
         cell.x["Virus"] = n_states - 1
         cell.x["IFN_a_b"] = n_states - 1
         cell.x["ACE2"] = n_states - 1
-        cell.x["TSC2"] = n_states - 1
         cell.x["Nutr_Depr"] = 0 # n_states - 1
         cell.x["Hypoxia"] = 0
 
@@ -223,7 +226,7 @@ def main():
         fontsize=14)
     
     plt.tight_layout()
-    fig.savefig('QN_plot_new.png')
+    fig.savefig('QN_plot.png')
 
     # print each value of components and the corresponding value in the last row of the matrix
     for i in range(len(components)):

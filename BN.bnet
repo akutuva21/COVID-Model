@@ -1,44 +1,45 @@
-ACE2, !Virus | FOXO3A | !ADAM_17
-ADAM_17, ANG_2_T1R | HIF_1a
-AKT, PI3K | mTORC2 | FOXO3A
-ANG_2, !ACE2
-ANG_2_T1R, ANG_2
-Apoptosis, CASP8 | CASP9
-Autophagy, !mTORC1
-Bax_Bak, !BCL_2
-BCL_2, (NFKB | CREB_1 | HIF_1a)
-C_FLIP, NFKB & !FOXO3A
-CASP1, NLRP3
-CASP8, (FADD & !C_FLIP) & !FOXO3A
-CASP9, tBid
-CREB_1, AKT
-FADD, TNFR
-FOXO3A, (STAT3 | MAPK_p38) & !(IKKB_a_b | AKT)
-HIF_1a, (NFKB | mTORC1) & ROS
-IFN_a_b, IRF3 & !Viral_Repl
-IFNR, IFN_a_b
-IKKB_a_b, (TLR4 | IL1R | TNFR | AKT)
-IL1, CASP1 | CASP8 | NFKB
-IL1R, IL1
-IL6, NFKB | MAPK_p38
-IL6R, IL6
-IRF3, RIG1
-ISG, STAT1
-MAPK_p38, ANG_2_T1R | TLR4 | ROS
-mTORC1, !TSC2
-mTORC2, PI3K
-NFKB, (IKKB_a_b | ROS) & !FOXO3A
-NLRP3, NFKB & RIG1
-PI3K, TLR4 | ROS | IL6R
-RIG1, Viral_Repl
-ROS, (ANG_2_T1R | MAPK_p38) & !FOXO3A
-SIL6R, ADAM_17 | IL6
-STAT1, IFNR
-STAT3, IL6R
-tBid, CASP8 | ROS
-TLR4, Virus
-TNF, ADAM_17 | NFKB | MAPK_p38
-TNFR, TNF
-TSC2, !AKT
-Viral_Repl, Virus & mTORC2 & !ISG
-Virus, Virus
+ACE2,       FOXO3A & !(Virus | ADAM_17)
+ADAM_17,    ANG_2_T1R | HIF_1a
+AKT,        mTORC2 | FOXO3A | (PI3K & !PTEN)
+AMPK,       Nutr_Depr | !AKT
+ANG_2_T1R,  ANG_2
+Apoptosis,  CASP8 | CASP9
+BCL_2,      (NFKB | CREB_1) & !p53
+CASP1,      NLRP3
+CASP8,      (FADD | p53) & !(C_FLIP | FOXO3A)
+CASP9,      FOXO3A | !BCL_2
+C_FLIP,     NFKB & !FOXO3A
+CREB_1,     AKT
+FADD,       TNFR
+FOXO3A,     (STAT3 | MAPK_p38 | AMPK) & !(IKKB_a_b | AKT)
+HIF_1a,     (NFKB | mTORC1) & (ROS | Hypoxia)
+IFN_a_b,    IRF3
+IFNR,       IFN_a_b
+IL1,        CASP1 | CASP8 | NFKB
+IL1R,       IL1
+IL6,        NFKB | MAPK_p38
+IL6R,       IL6
+IRF3,       RIG1
+IKKB_a_b,   (TLR4 | IL1R | TNFR | AKT)
+ISG,        STAT1 & !Viral_Repl
+MAPK_p38,   ANG_2_T1R | TLR4 | ROS
+mTORC1,     !TSC2 & !FOXO3A
+mTORC2,     PI3K | AMPK
+NFKB,       (IKKB_a_b | ROS) & !FOXO3A
+NLRP3,      NFKB & RIG1
+Nutr_Depr,  Nutr_Depr
+p53,        (Hypoxia | AMPK) & !Virus
+PI3K,       (TLR4 | ROS | IL6R)
+PTEN,       p53
+RIG1,       Viral_Repl
+ROS,        (ANG_2_T1R | MAPK_p38) & !FOXO3A
+SIL6R,      ADAM_17 & IL6R
+STAT1,      IFNR
+STAT3,      IL6R
+tBid,       CASP8
+TLR4,       Virus
+TNF,        ADAM_17 | NFKB | MAPK_p38
+TNFR,       TNF
+TSC2,       (p53 | AMPK | HIF_1a) & !AKT
+Viral_Repl, (Virus & mTORC1) & !ISG
+Virus,      Virus

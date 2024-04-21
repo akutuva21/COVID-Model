@@ -20,7 +20,8 @@ igraph.graph["fontcolor"] = "black"
 igraph.graph["fontsize"] = "50"
 
 add_style_interactionsigns(igraph)
-for engine in ["dot", "neato", "fdp", "sfdp", "circo", "twopi"]:
+# , "neato", "fdp", "sfdp", "circo", "twopi
+for engine in ["dot"]:
     try:
         igraph2image(igraph, f'bnet_{engine}.png', layout_engine = engine)
     except:
@@ -31,18 +32,20 @@ with open(filename, 'r') as fp:
     lines = fp.readlines()
 all_components = [line.split(',')[0] for line in lines]
 
-exclude = ["Virus", "ACE2"]
+exclude = ["Virus", "IFN_a_b", "ACE2"]
 initial = "".join([str(0) if x not in exclude else str(1)
                   for x in all_components])
 print(initial)
 
-update = "synchronous"
-stg = stgs.primes2stg(primes, update, initial_states=initial)
-for engine in ["dot", "twopi"]:
-    try:
-        stgs.stg2image(stg, f'stg_{engine}.pdf', layout_engine=engine)
-    except:
-        pass
+stg = False
+if stg:
+    update = "synchronous"
+    stg = stgs.primes2stg(primes, update, initial_states=initial)
+    for engine in ["dot", "twopi"]:
+        try:
+            stgs.stg2image(stg, f'stg_{engine}.pdf', layout_engine=engine)
+        except:
+            pass
 
 '''total = 5
 activities = [initial] + ["".join([str(np.random.choice([0, 1]))
