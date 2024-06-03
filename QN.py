@@ -5,16 +5,16 @@ import matplotlib.cm as cm
 import seaborn as sns
 
 # Define constants
-N_STATES = 3
-N_ITER = 15
+N_STATES = 2
+N_ITER = 30
 ORDERS = 500
 
 def AVG(*args):
     return np.mean(args)
 def OR(*args):
-    return np.mean(args) # np.max(args)
+    return AVG(args)
 def AND(*args):
-    return np.min(args)
+    return AVG(args)
 def NOT(value):
     return (N_STATES - 1) - value
 
@@ -38,7 +38,7 @@ class Pneumocyte:
     def ADAM_17(self):
         return OR(self.x["ANG_2_T1R"], self.x["HIF_1a"])
     def AKT(self):
-        return AVG(self.x["mTORC2"], self.x["FOXO3A"], self.x["PI3K"] - self.x["PTEN"])
+        return AVG(self.x["mTORC2"], self.x["FOXO3A"], self.x["PI3K"]) - self.x["PTEN"]
     def AMPK(self):
         return self.x["Nutr_Depr"] - self.x["AKT"]
     def ANG_2(self):
@@ -118,7 +118,7 @@ class Pneumocyte:
     def STAT3(self):
         return self.x["IL6R"]
     def tBid(self):
-        return self.x["CASP8"]
+        return self.x["CASP8"] # remove later since useless
     def TLR4(self):
         return self.x["Virus"]
     def TNF(self):
@@ -128,7 +128,7 @@ class Pneumocyte:
     def TSC2(self):
         return AVG(self.x["p53"], self.x["AMPK"], self.x["HIF_1a"]) - self.x["AKT"]
     def Viral_Repl(self):
-        return AND(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"]
+        return AVG(self.x["Virus"], self.x["mTORC1"]) - self.x["ISG"]
     def Virus(self):
         return self.x["Virus"]
     
@@ -169,10 +169,7 @@ def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
     for order in np.arange(orders):
         cell.x = {component: 0 for component in components}
         cell.x["Virus"] = n_states - 1
-        cell.x["IFN_a_b"] = n_states - 1
         cell.x["ACE2"] = n_states - 1
-        cell.x["Nutr_Depr"] = 0 # n_states - 1
-        cell.x["Hypoxia"] = 0
 
         for i in np.arange(n_iter):
             np.random.shuffle(indices)
@@ -192,7 +189,7 @@ def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
     return temp_mat
 
 def main():
-    np.random.seed(0)
+    # np.random.seed(0)
     fig, ax = plt.subplots(1, 1, figsize=(9, 7))
     plt.rcParams['figure.dpi'] = 300
 
@@ -208,7 +205,7 @@ def main():
         return new_cmap
 
     yticklabels = [str(x) for x in 1 + np.arange(N_ITER)]
-    components = [x.replace("_a_b", " α/β").replace("_", " ") for x in components]
+    components = [x.replace("_a_b", " α/β").replace("_", " ").replace("1a", "1α") for x in components]
 
     ax = sns.heatmap(mat, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
                      linewidths=.05, xticklabels=components,

@@ -13,7 +13,6 @@ igraph.graph["rankdir"] = "LR"
 igraph.graph["overlap"] = "scale"
 igraph.graph["nodesep"] = "0.25"
 igraph.graph["ranksep"] = "0.5"
-igraph.graph["dpi"] = "600"
 igraph.graph["ratio"] = "fill"
 igraph.graph["fontname"] = "Helvetica"
 igraph.graph["fontcolor"] = "black"
@@ -23,7 +22,7 @@ add_style_interactionsigns(igraph)
 # , "neato", "fdp", "sfdp", "circo", "twopi
 for engine in ["dot"]:
     try:
-        igraph2image(igraph, f'bnet_{engine}.png', layout_engine = engine)
+        igraph2image(igraph, f'bnet_{engine}.svg', layout_engine = engine)
     except:
         print(f"Failed to draw with {engine} engine")
         pass
@@ -32,7 +31,7 @@ with open(filename, 'r') as fp:
     lines = fp.readlines()
 all_components = [line.split(',')[0] for line in lines]
 
-exclude = ["Virus", "IFN_a_b", "ACE2"]
+exclude = ["Virus", "ACE2"]
 initial = "".join([str(0) if x not in exclude else str(1)
                   for x in all_components])
 print(initial)
