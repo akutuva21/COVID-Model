@@ -24,7 +24,7 @@ class Pneumocyte:
                       "IFNR", "IL1", "IL1R", "IL6", "IL6R", "IRF3", "IKKB_a_b", 
                       "ISG", "MAPK_p38", "mTORC1", "mTORC2", "NFKB", "NLRP3", 
                       "Nutr_Depr", "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R", 
-                      "STAT1", "STAT3", "tBid", "TLR4", "TNF", "TNFR", "TSC2",
+                      "STAT1", "STAT3", "TLR4", "TNF", "TNFR", "TSC2",
                       "Viral_Repl", "Virus"]
         if x is None:
             self.x = {component: 0 for component in components}
@@ -115,8 +115,8 @@ class Pneumocyte:
         return self.x["IFNR"]
     def STAT3(self):
         return self.x["IL6R"]
-    def tBid(self):
-        return self.x["CASP8"]
+    # def tBid(self):
+    #     return self.x["CASP8"]
     def TLR4(self):
         return self.x["Virus"]
     def TNF(self):
@@ -130,7 +130,7 @@ class Pneumocyte:
     def Virus(self):
         return self.x["Virus"]
     
-    def get_oper(self, component):
+    def set_oper(self, component):
         return lambda: self.x.__setitem__(component, getattr(self, component)())
 
     def update_state(self, x, index, update_func, n_states=N_STATES):
@@ -162,34 +162,36 @@ def BN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES):
     '''
 
     cell = Pneumocyte()
-    operations = {component: cell.get_oper(component) for component in components}
-    indices = np.arange(len(operations))
-    temp_mat = np.zeros((n_iter, len(operations), orders))
+    operations = {component: cell.set_oper(component) for component in components}
+    
+    for component in components:
+        if component not in operations:
+            raise NotImplementedError(f"Operation for '{component}' not defined in 'operations'")
 
-    for order in np.arange(orders):
+    temp_mat = np.zeros((n_iter, len(components), orders))
+
+    for order in range(orders):
         cell.x = {component: 0 for component in components}
         cell.x["Virus"] = n_states - 1
         cell.x["ACE2"] = n_states - 1
+        cell.x["TSC2"] = n_states - 1
+        indices = np.arange(len(components))
 
-        for i in np.arange(n_iter):
+        for i in range(n_iter):
             np.random.shuffle(indices)
             for idx in indices:
                 key = components[idx]
-                if key in operations:
-                    component, operation_lambda = key, operations[key]
-                    cell.x[component] = cell.update_state(cell.x, component, operation_lambda, n_states)
-                else:
-                    raise NotImplementedError(f"Operation for '{key}' not defined in 'operations'")
-            indices = np.sort(indices)
-            temp_mat[i, :, order] = [cell.x[components[a]] for a in indices]
-
+                component, oper_func = key, operations[key]
+                cell.x[component] = cell.update_state(cell.x, component, oper_func, n_states)
+            
+            temp_mat[i, :, order] = [cell.x[comp] for comp in components]
+    
     # print components in alphabetical order in the form of [a, b, c, ...]
     # print("[" + ", ".join([f"\"{x}\"" for x in sorted(components, key=lambda x: x.lower())]) + "]")
 
     return temp_mat
 
 def main():
-    # np.random.seed(0)
     fig, ax = plt.subplots(1, 1, figsize=(9, 7))
     plt.rcParams['figure.dpi'] = 300
 
@@ -208,8 +210,8 @@ def main():
     components = [x.replace("_a_b", " α/β").replace("_", " ").replace("1a", "1α") for x in components]
 
     ax = sns.heatmap(mat, cmap=truncate_colormap(cmap, 0.25, 0.75, 200),
-                     linewidths=.05, xticklabels=components,
-                     yticklabels=yticklabels, vmin=0, vmax=N_STATES-1, alpha=1)
+                    linewidths=.05, xticklabels=components,
+                    yticklabels=yticklabels, vmin=0, vmax=N_STATES-1, alpha=1)
     ax.tick_params(axis='y', which='major', labelsize=10)
 
     colorbar = ax.collections[0].colorbar

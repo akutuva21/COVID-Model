@@ -36,7 +36,6 @@ ROS,        (ANG_2_T1R | MAPK_p38) & !FOXO3A
 SIL6R,      ADAM_17 & IL6R
 STAT1,      IFNR
 STAT3,      IL6R
-tBid,       CASP8
 TLR4,       Virus
 TNF,        ADAM_17 | NFKB | MAPK_p38
 TNFR,       TNF
