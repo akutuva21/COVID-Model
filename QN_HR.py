@@ -22,7 +22,9 @@ def NOT(value):
 
 class Pneumocyte:
     MODEL = 0
-    SCENARIO  = 0
+    SCENARIO = 0
+    MTORC_knockout = False
+    IFN_knockout = False
     def __init__(self, x=None):
 
         components = ["ACE2", "ADAM_17", "AKT", "AMPK", "ANG_2", "ANG_2_T1R",
@@ -75,6 +77,8 @@ class Pneumocyte:
     def Hypoxia(self):
         return self.x["Hypoxia"]
     def IFN_a_b(self):
+        if Pneumocyte.IFN_knockout == True:
+            return 0
         if Pneumocyte.MODEL > 0:
             if Pneumocyte.SCENARIO > 0:
                 return AVG(self.x["IRF3"], self.x["mTORC1"]) - self.x["Viral_Repl"]
@@ -88,14 +92,14 @@ class Pneumocyte:
     def IFNR(self):
         return self.x["IFN_a_b"]
     def IL1(self):
-        if Pneumocyte.MODEL == MAX_STATES:
+        if Pneumocyte.MODEL == 2:
             return AVG(self.x["CASP1"], self.x["CASP8"], self.x["NFKB"], self.x["mTORC1"]) 
         else:
             return AVG(self.x["CASP1"], self.x["CASP8"], self.x["NFKB"])
     def IL1R(self):
         return self.x["IL1"]
     def IL6(self):
-        if Pneumocyte.MODEL == MAX_STATES:
+        if Pneumocyte.MODEL == 2:
             return AVG(self.x["NFKB"], self.x["MAPK_p38"], self.x["mTORC1"]) 
         else:
             return AVG(self.x["NFKB"], self.x["MAPK_p38"])
@@ -107,13 +111,15 @@ class Pneumocyte:
         return AVG(self.x["TLR4"], self.x["IL1R"],
                    self.x["TNFR"], self.x["AKT"])
     def ISG(self):
-        if Pneumocyte.SCENARIO == MAX_STATES:
+        if Pneumocyte.SCENARIO == 2:
             return self.x["STAT1"] - self.x["Viral_Repl"] 
         else:
             return self.x["STAT1"]
     def MAPK_p38(self):
         return AVG(self.x["ANG_2_T1R"], self.x["TLR4"], self.x["ROS"])
     def mTORC1(self):
+        if Pneumocyte.MTORC_knockout == True:
+            return 0
         return AVG(NOT(self.x["TSC2"]), NOT(self.x["FOXO3A"]))
     def mTORC2(self):
         return AVG(self.x["PI3K"], self.x["AMPK"])
@@ -144,7 +150,7 @@ class Pneumocyte:
     def TLR4(self):
         return self.x["Virus"]
     def TNF(self):
-        if Pneumocyte.MODEL == MAX_STATES:
+        if Pneumocyte.MODEL == 2: # one of the cytokines
             return AVG(self.x["ADAM_17"], self.x["NFKB"], self.x["MAPK_p38"], self.x["mTORC1"]) 
         else:
             return AVG(self.x["ADAM_17"], self.x["NFKB"], self.x["MAPK_p38"])
@@ -178,13 +184,25 @@ class Pneumocyte:
 
         return current_state
 
-def QN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES, model=0, scenario=0, nutr_depr=0, hypoxia=0):
-    '''
-    components: list of components in the model
-    n_iter: number of iterations to run the model
-    orders: number of orders to run the model
-    n_states: number of states for each component
-    '''
+def QN(components, n_iter=N_ITER, orders=ORDERS, model=0, scenario=0, nutr_depr=0, hypoxia=0, MTORC_knockout=False, IFN_knockout=False):
+    """
+    Runs the model simulation.
+
+    Args:
+    components (list): List of components in the model.
+    n_iter (int): Number of iterations to run the model.
+    orders (int): Number of orders to run the model.
+    n_states (int): Number of states for each component.
+    model (int): Model parameter.
+    scenario (int): Scenario parameter.
+    nutr_depr (int): Nutritional deprivation level.
+    hypoxia (int): Hypoxia level.
+    MTORC_knockout (bool): Flag for MTORC knockout.
+    IFN_knockout (bool): Flag for IFN knockout.
+
+    Returns:
+    np.ndarray: Results matrix from the simulation.
+    """
 
     cell = Pneumocyte()
     operations = {component: cell.set_oper(component) for component in components}
@@ -204,14 +222,16 @@ def QN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES, model=0, sce
         cell.x["Hypoxia"] = hypoxia # MAX_STATES
         Pneumocyte.MODEL = model
         Pneumocyte.SCENARIO = scenario
+        Pneumocyte.MTORC_knockout = MTORC_knockout
+        Pneumocyte.IFN_knockout = IFN_knockout
 
         indices = np.arange(len(components))
 
         for i in range(n_iter):
             np.random.shuffle(indices)
             for idx in indices:
-                key = components[idx]
-                component, oper_func = key, operations[key]
+                component = components[idx]
+                oper_func = operations[component]
                 cell.x[component] = cell.update_state(cell.x, component, oper_func)
             
             temp_mat[i, :, order] = [cell.x[comp] for comp in components]
@@ -219,93 +239,135 @@ def QN(components, n_iter=N_ITER, orders=ORDERS, n_states=N_STATES, model=0, sce
     return temp_mat
 
 def main():
-    nutr_cond = ["base", "starvation"]
+    '''
+    Runs the experiment with different conditions and scenarios.
+    '''
+    nutr_cond = ["healthy", "starvation"]
     hyp_cond = ["normoxia", "hypoxia"]
-    use_nutr_cond = False
-    use_hyp_cond = False
 
-    # base_name = ["mtorc"]
-    SIZE = N_ITER
-    for nutr_depr in range(len(nutr_cond)) if use_nutr_cond else [0]:
-        nname = nutr_cond[nutr_depr] if use_nutr_cond else nutr_cond[0]
-        
-        for hypoxia in range(len(hyp_cond)) if use_hyp_cond else [0]:
-            hname = hyp_cond[hypoxia] if use_hyp_cond else hyp_cond[0]
+    conditions = [
+    {"use_hyp_cond": False, "use_nutr_cond": False, "MTORC_knockout": False, "IFN_knockout": False},
+    {"use_hyp_cond": True,  "use_nutr_cond": False, "MTORC_knockout": False, "IFN_knockout": False},
+    {"use_hyp_cond": False, "use_nutr_cond": True,  "MTORC_knockout": False, "IFN_knockout": False},
+    {"use_hyp_cond": False, "use_nutr_cond": False, "MTORC_knockout": True,  "IFN_knockout": False},
+    {"use_hyp_cond": False, "use_nutr_cond": False, "MTORC_knockout": False, "IFN_knockout": True}
+    ]
 
-            for model in [0, MAX_STATES]:
-                for scenario in [0, MAX_STATES]:
-                    print("# " + nname + " + " + hname + " model " + str(model) + " scenario " + str(scenario))
-                    name = nname + "." + hname + "." + str(model) + "." + str(scenario) + "."
-                    matt = np.zeros((SIZE,3,5))
-                    comp = ["APO", "IFN", "IL6", "TNF", "Vir.rep"]
-                    comp_idx = [6, 17, 21, 42, 45]
-                    rows = [15, 30, 45]
+    components = ["ACE2", "ADAM_17", "AKT", "AMPK", "ANG_2", "ANG_2_T1R",
+                  "Apoptosis", "BCL_2", "CASP1", "CASP8", "CASP9", "C_FLIP",
+                  "CREB_1", "FADD", "FOXO3A", "HIF_1a", "Hypoxia", "IFN_a_b",
+                  "IFNR", "IL1", "IL1R", "IL6", "IL6R", "IRF3", "IKKB_a_b",
+                  "ISG", "MAPK_p38", "mTORC1", "mTORC2", "NFKB", "NLRP3",
+                  "Nutr_Depr", "p53", "PI3K", "PTEN", "RIG1", "ROS", "SIL6R",
+                  "STAT1", "STAT3", "TLR4", "TNF", "TNFR", "TSC2", "Viral_Repl",
+                  "Virus"]
+    comp = ["APO", "IFN", "IL6", "TNF", "Vir.rep"]
+    comp_idx = [6, 17, 21, 41, 44]
+    rows = [45]
+    SIZE = 50
+    n_trials = len(conditions)
 
-                    for ii in range(SIZE):
-                        # np.random.seed(0)
-                        # fig, ax = plt.subplots(1, 1, figsize=(9, 7))
-                        # plt.rcParams['figure.dpi'] = 300
+    results_by_condition = []
 
-                        components = list(Pneumocyte().x.keys())
-                        mat = np.average(QN(components, N_ITER, ORDERS, N_STATES, model=model, scenario=scenario, nutr_depr=nutr_depr), axis=2)
-                        for jj, row in enumerate([r - 1 for r in rows]):
-                            matt[ii, jj, :] = mat[row, comp_idx]
-                        # cmap = cm.get_cmap('icefire_r')
+    for trial in range(n_trials):
+        cond = conditions[trial]
+        nutr_depr = MAX_STATES if cond["use_nutr_cond"] else 0
+        hypoxia = MAX_STATES if cond["use_hyp_cond"] else 0
 
-                        # def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-                        #     new_cmap = colors.LinearSegmentedColormap.from_list(
-                        #         'truncated_%s' % cmap.name,
-                        #         cmap(np.linspace(minval, maxval, n)))
-                        #     return new_cmap
+        for model in range(0, 3):
+            for scenario in range(0, 3):
+                condition_name = f"{nutr_cond[nutr_depr]}_{hyp_cond[hypoxia]}_MTORC_{cond['MTORC_knockout']}_IFN_{cond['IFN_knockout']}_model_{model}_scenario_{scenario}"
+                # print(f"Running: {condition_name}")
 
-                        # yticklabels = [str(x) for x in 1 + np.arange(N_ITER)]
-                        # components = [x.replace("_a_b", " α/β").replace("_", " ") for x in components]
+                results_matrix = np.zeros((SIZE, len(rows), len(comp_idx)))
 
-                        # ax = sns.heatmap(mat, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
-                        #                 linewidths=.05, xticklabels=components,
-                        #                 yticklabels=yticklabels, vmin=0, vmax=N_STATES-1, alpha=1)
-                        # ax.tick_params(axis='y', which='major', labelsize=10)
+                for sample in range(SIZE):
+                    # np.random.seed(0)
+                    # fig, ax = plt.subplots(1, 1, figsize=(9, 7))
+                    # plt.rcParams['figure.dpi'] = 300
 
-                        # colorbar = ax.collections[0].colorbar
-                        # colorbar.set_ticks(np.arange(0, N_STATES, 1))
-                        # colorbar.set_ticklabels([str(int(i)) for i in np.arange(0, N_STATES, 1)])
+                    sim_results = QN(components, N_ITER, ORDERS, model=model, scenario=scenario, 
+                                     nutr_depr=nutr_depr, hypoxia=hypoxia, MTORC_knockout=cond["MTORC_knockout"], 
+                                     IFN_knockout=cond["IFN_knockout"])
+                    averaged_results = np.average(sim_results, axis=2)
+                    for row_idx, row in enumerate(rows):
+                        results_matrix[sample, row_idx, :] = averaged_results[row - 1, comp_idx]
 
-                        # ax.set_xlabel('Model Component', fontsize=12)
-                        # ax.set_ylabel('Iteration Number', fontsize=12)
-                        # ax.set_title(
-                        #    f'Model Component Activation in COVID-19 with {ORDERS} Samples',
-                        #    fontsize=14)
+                results_by_condition.append({
+                    "condition_name": condition_name,
+                    "model": model,
+                    "scenario": scenario,
+                    "results_matrix": results_matrix
+                })
 
-                        # plt.tight_layout()
-                        # fig.savefig('QN_plot.png')
+                    # cmap = cm.get_cmap('icefire_r')
 
-                    # print each value of components and the corresponding value in the last row of the matrix
-                    # for i in range(len(components)):
-                    #    print(components[i], mat[-1, i])
-                    for i in range(len(comp)):
-                        for k, kk in enumerate(rows):  # Loop through the three rows (14, 29, 44)
-                            print(f"{name}{comp[i]}_{kk} = c(", end="")
-                            for j in range(SIZE):
-                                if j == 0:
-                                    print(matt[j, k, i], end="")
-                                else:
-                                    print(f", {matt[j, k, i]}", end="")
-                            print(")")
-                    print("\n")
+                    # def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+                    #     new_cmap = colors.LinearSegmentedColormap.from_list(
+                    #         'truncated_%s' % cmap.name,
+                    #         cmap(np.linspace(minval, maxval, n)))
+                    #     return new_cmap
 
-    #### why 3?
-    for j in range(3):
-        for x in comp:
-            print("boxplot(cbind(base." + str(0) + "." + str(j) + "." + x +
-                  ", base." + str(1) + "." + str(j) + "." + x +
-                  ", base." + str(2) + "."  + str(j) + "."  + x +
-                  ", starvation." + str(0) + "."  + str(j) + "." + x +
-                  ", starvation."  + str(1) + "." + str(j) + "." + x +
-                  ", starvation." + str(2) + "." + str(j) + "." + x + ")" +
-                  ", ylab=" + x + ", main=secenario " + str(j) + ", las=2)"
-                )
-    print("\n")
+                    # yticklabels = [str(x) for x in 1 + np.arange(N_ITER)]
+                    # components = [x.replace("_a_b", " α/β").replace("_", " ") for x in components]
 
+                    # ax = sns.heatmap(mat, cmap=truncate_colormap(cmap, 0.25, 0.75, n=200),
+                    #                 linewidths=.05, xticklabels=components,
+                    #                 yticklabels=yticklabels, vmin=0, vmax=N_STATES-1, alpha=1)
+                    # ax.tick_params(axis='y', which='major', labelsize=10)
+
+                    # colorbar = ax.collections[0].colorbar
+                    # colorbar.set_ticks(np.arange(0, N_STATES, 1))
+                    # colorbar.set_ticklabels([str(int(i)) for i in np.arange(0, N_STATES, 1)])
+
+                    # ax.set_xlabel('Model Component', fontsize=12)
+                    # ax.set_ylabel('Iteration Number', fontsize=12)
+                    # ax.set_title(
+                    #    f'Model Component Activation in COVID-19 with {ORDERS} Samples',
+                    #    fontsize=14)
+
+                    # plt.tight_layout()
+                    # fig.savefig('QN_plot.png')
+
+                # print each value of components and the corresponding value in the last row of the matrix
+                # for i in range(len(components)):
+                #    print(components[i], mat[-1, i])
+                print_results(condition_name, results_matrix, comp, rows)
+    
+    generate_boxplots(comp, rows)
+
+def print_results(condition_name, results_matrix, components, rows):
+    """
+    Prints the simulation results.
+
+    Args:
+    condition_name (str): Name of the condition.
+    results_matrix (np.ndarray): Matrix of results.
+    components (list): List of components.
+    rows (list): List of row indices.
+    """
+    for comp_idx, component in enumerate(components):
+        for row_idx, row in enumerate(rows):
+            values = results_matrix[:, row_idx, comp_idx]
+            values_str = ", ".join(map(str, values))
+            print(f"{condition_name}_{component}_{row} = c({values_str})")
+
+def generate_boxplots(components, rows):
+    """
+    Generates boxplots for the simulation results.
+
+    Args:
+    components (list): List of components.
+    rows (list): List of row indices.
+    """
+    for model in range(N_STATES):
+        for scenario in range(N_STATES):
+            for row in rows:
+                for component in components:
+                    base_str = ", ".join([f"base.{model}.{scenario}.{component}_{row}"] * N_STATES)
+                    starvation_str = ", ".join([f"starvation.{model}.{scenario}.{component}_{row}"] * N_STATES)
+                    print(f"boxplot(cbind({base_str}, {starvation_str}), ylab='{component}', main='Scenario {model}', las=2)")
+                
 def run():
 
     # np.random.seed(0)
@@ -364,6 +426,7 @@ def run():
     # print each value of components and the corresponding value in the last row of the matrix
 
 if __name__ == '__main__':
+    print("QN Model starting...\n")
     start_time = time.time()
 
     main()
